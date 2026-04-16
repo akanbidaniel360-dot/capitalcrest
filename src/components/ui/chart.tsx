@@ -113,6 +113,7 @@ const ChartTooltipContent = React.forwardRef<
       hideIndicator = false,
       label,
       labelFormatter,
+      // @ts-ignore recharts type mismatch
       labelClassName,
       formatter,
       color,
