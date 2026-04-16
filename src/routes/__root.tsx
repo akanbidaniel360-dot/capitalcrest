@@ -34,8 +34,11 @@ export const Route = createRootRoute({
       { title: "Capital Crest — Digital Banking" },
       { name: "description", content: "Premium digital banking with multi-currency support, instant transfers, and smart financial tools." },
       { property: "og:title", content: "Capital Crest — Digital Banking" },
-      { property: "og:description", content: "Premium digital banking with multi-currency support." },
+      { property: "og:description", content: "Premium digital banking with multi-currency support, instant transfers, and smart financial tools." },
       { property: "og:type", content: "website" },
+      { name: "twitter:title", content: "Capital Crest — Digital Banking" },
+      { name: "twitter:description", content: "Premium digital banking with multi-currency support, instant transfers, and smart financial tools." },
+      { name: "twitter:card", content: "summary" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
