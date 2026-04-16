@@ -69,7 +69,8 @@ function CardsPage() {
 
   const toggleSetting = async (card: any, field: "online_payments" | "international_payments") => {
     const val = !card[field];
-    await supabase.from("cards").update({ [field]: val }).eq("id", card.id);
+    const updateData = field === "online_payments" ? { online_payments: val } : { international_payments: val };
+    await supabase.from("cards").update(updateData).eq("id", card.id);
     setCards(cards.map((c) => c.id === card.id ? { ...c, [field]: val } : c));
   };
 
