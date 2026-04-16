@@ -46,19 +46,6 @@ function DepositPage() {
         metadata: { method, reference },
       });
       if (error) throw error;
-
-      // Add to pending balance
-      await supabase.rpc("increment_pending_balance" as any, {
-        p_user_id: user!.id,
-        p_currency: profile.primary_currency,
-        p_amount: amt,
-      }).then(() => {}).catch(() => {
-        // RPC may not exist, update directly
-        supabase.from("wallets")
-          .update({ pending_balance: (wallet => wallet) } as any)
-          .eq("user_id", user!.id);
-      });
-
       toast.success("Deposit request submitted! Awaiting admin approval.");
       navigate({ to: "/dashboard" });
     } catch (err: any) {

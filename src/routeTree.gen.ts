@@ -12,9 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WithdrawRouteImport } from './routes/withdraw'
 import { Route as TransferRouteImport } from './routes/transfer'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SavingsRouteImport } from './routes/savings'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LoansRouteImport } from './routes/loans'
 import { Route as DepositRouteImport } from './routes/deposit'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CardsRouteImport } from './routes/cards'
+import { Route as BillsRouteImport } from './routes/bills'
 import { Route as IndexRouteImport } from './routes/index'
 
 const WithdrawRoute = WithdrawRouteImport.update({
@@ -32,9 +36,19 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SavingsRoute = SavingsRouteImport.update({
+  id: '/savings',
+  path: '/savings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoansRoute = LoansRouteImport.update({
+  id: '/loans',
+  path: '/loans',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DepositRoute = DepositRouteImport.update({
@@ -47,6 +61,16 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CardsRoute = CardsRouteImport.update({
+  id: '/cards',
+  path: '/cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillsRoute = BillsRouteImport.update({
+  id: '/bills',
+  path: '/bills',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -55,18 +79,26 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/bills': typeof BillsRoute
+  '/cards': typeof CardsRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
+  '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/savings': typeof SavingsRoute
   '/signup': typeof SignupRoute
   '/transfer': typeof TransferRoute
   '/withdraw': typeof WithdrawRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/bills': typeof BillsRoute
+  '/cards': typeof CardsRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
+  '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/savings': typeof SavingsRoute
   '/signup': typeof SignupRoute
   '/transfer': typeof TransferRoute
   '/withdraw': typeof WithdrawRoute
@@ -74,9 +106,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/bills': typeof BillsRoute
+  '/cards': typeof CardsRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
+  '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/savings': typeof SavingsRoute
   '/signup': typeof SignupRoute
   '/transfer': typeof TransferRoute
   '/withdraw': typeof WithdrawRoute
@@ -85,27 +121,39 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/bills'
+    | '/cards'
     | '/dashboard'
     | '/deposit'
+    | '/loans'
     | '/login'
+    | '/savings'
     | '/signup'
     | '/transfer'
     | '/withdraw'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/bills'
+    | '/cards'
     | '/dashboard'
     | '/deposit'
+    | '/loans'
     | '/login'
+    | '/savings'
     | '/signup'
     | '/transfer'
     | '/withdraw'
   id:
     | '__root__'
     | '/'
+    | '/bills'
+    | '/cards'
     | '/dashboard'
     | '/deposit'
+    | '/loans'
     | '/login'
+    | '/savings'
     | '/signup'
     | '/transfer'
     | '/withdraw'
@@ -113,9 +161,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BillsRoute: typeof BillsRoute
+  CardsRoute: typeof CardsRoute
   DashboardRoute: typeof DashboardRoute
   DepositRoute: typeof DepositRoute
+  LoansRoute: typeof LoansRoute
   LoginRoute: typeof LoginRoute
+  SavingsRoute: typeof SavingsRoute
   SignupRoute: typeof SignupRoute
   TransferRoute: typeof TransferRoute
   WithdrawRoute: typeof WithdrawRoute
@@ -144,11 +196,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/savings': {
+      id: '/savings'
+      path: '/savings'
+      fullPath: '/savings'
+      preLoaderRoute: typeof SavingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loans': {
+      id: '/loans'
+      path: '/loans'
+      fullPath: '/loans'
+      preLoaderRoute: typeof LoansRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deposit': {
@@ -165,6 +231,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cards': {
+      id: '/cards'
+      path: '/cards'
+      fullPath: '/cards'
+      preLoaderRoute: typeof CardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bills': {
+      id: '/bills'
+      path: '/bills'
+      fullPath: '/bills'
+      preLoaderRoute: typeof BillsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -177,9 +257,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BillsRoute: BillsRoute,
+  CardsRoute: CardsRoute,
   DashboardRoute: DashboardRoute,
   DepositRoute: DepositRoute,
+  LoansRoute: LoansRoute,
   LoginRoute: LoginRoute,
+  SavingsRoute: SavingsRoute,
   SignupRoute: SignupRoute,
   TransferRoute: TransferRoute,
   WithdrawRoute: WithdrawRoute,
