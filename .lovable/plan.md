@@ -1,124 +1,124 @@
-# Capital Crest — Digital Banking Platform
+## Plan: 7 Enhancements to Capital Crest
 
-## Brand & Design
+### 1. Crypto Deposit Option (USDT ERC-20)
 
-- **Name**: Capital Crest
-- **Style**: Premium fintech UI inspired by Revolut/OPay — clean cards, subtle gradients, dark/light mode
-- **Mobile-first**: Optimized for 360px viewport, scales up beautifully
-- **Colors**: Deep navy primary, emerald accents, clean whites
+Add a new "Cryptocurrency" method to `/deposit` that displays:
 
-## Phase 1: Foundation (This Implementation)
+- Wallet address: `0x56eeb7f7bfab320389b5a1a2666dd290e7cbc645`
+- Network: Ethereum (ERC-20) • USDT
+- Copy-to-clipboard button + QR code (using `qrcode.react`)
+- Warning to send only USDT on Ethereum
+- Submit creates a pending transaction with the TX hash as reference
 
-### 1. Authentication & Profiles
+### 2. About Page (Public)
 
-- Signup: Full Name, Email, Password, Country, Currency selection (USD, NGN, GBP, EUR, etc.)
-- Login with email/password
-- Supabase Auth + profiles table with currency preference
-- Auto-generate unique 10-digit account number on signup
-- Transaction PIN setup (4-digit, hashed)
+New route `/about` accessible without login, telling the Capital Crest story:
 
-### 2. Database Schema (Supabase)
+- Hero: "Banking reimagined for the modern world"
+- Mission/Vision section
+- What we offer (multi-currency, instant transfers, virtual cards, loans)
+- Customer service section: 24/7 support email (`support@capitalcrest.app`), phone, live chat hours
+- FAQ section (6-8 common questions)
+- Trust indicators (security, encryption, regulation note)
+- CTAs to Sign Up / Sign In
+- Add "About" link to landing page header + footer
 
-- `profiles` — name, country, currency, account_number, pin_hash, kyc_status, credit_score, is_frozen
-- `user_roles` — admin role system ([akanbidaniel360@gmail.com](mailto:akanbidaniel360@gmail.com) as admin)
-- `wallets` — multi-currency balances (available, pending)
-- `transactions` — all financial activity with status tracking
-- `kyc_documents` — ID uploads, selfie, verification status
-- `beneficiaries` — saved recipients
-- `cards` — virtual card applications and details
-- `loans` — applications, repayment schedules
-- `savings_goals` — locked funds with interest simulation
-- `notifications` — real-time alerts
-- `exchange_rates` — admin-managed currency rates
-- `bill_payments` — airtime, electricity, internet
-- `referrals` — invite tracking and bonuses
-- Full RLS policies on all tables
+### 3. Transaction History Enhancement
 
-### 3. User Dashboard
+Improve existing `/transactions` page:
 
-- Welcome header with name and greeting
-- Balance card showing available/pending in user's currency
-- Account number + "Capital Crest" bank name display
-- Quick action grid: Deposit, Withdraw, Transfer, Pay Bills, Loan, Card
-- Recent transactions list
-- Dark/light mode toggle
+- Add **CSV export** button (downloads all filtered transactions)
+- Add **date range filter** (this week / this month / this year / all)
+- Add **search by description/reference**
+- Add summary cards at top: Total In / Total Out / Net
+- Add link to transactions page in bottom nav (replaces "Cards" or adds new item)
 
-### 4. Core Banking Features
+### 4. PWA Installable App
 
-- **Deposits**: Bank transfer/crypto method, upload proof, status tracking (Pending → Approved)
-- **Withdrawals**: Amount + bank details input, PIN verification, admin approval flow
-- **Transfers**: To other users by email/account number, PIN required, instant balance update
-- **Beneficiary Management**: Save/delete frequent recipients, quick transfer
+Convert site to installable PWA using a **simple manifest approach** (no service worker, since SW breaks Lovable preview iframe):
 
-### 5. Multi-Currency System
+- Create `public/manifest.webmanifest` with name, icons, theme color, `display: "standalone"`
+- Create app icons (192x192, 512x512) — generate as SVG-based PNGs with Capital Crest shield logo
+- Add manifest link + theme-color meta in `__root.tsx`
+- Build a custom **InstallAppPrompSupabase realtime subscriptions so the dashboard updates instantly when deposits are approvedt** component:
+  - Listens for `beforeinstallprompt` event
+  - Shows a bottom-sheet popup on first visit: "Install Capital Crest App" with Install / Not now buttons
+  - On click, triggers native browser install prompt
+  - For iOS Safari (no install event), shows instructions ("Tap Share → Add to Home Screen")
+  - Remembers dismissal in localStorage (won't nag)
+- Mount globally in `__root.tsx`
 
-- Primary currency per user
-- Currency conversion with admin-set exchange rates
-- All balances displayed in user's currency
+### 5. Admin Edit User Balances
 
-### 6. KYC Verification
+In `/admin` Users tab:
 
-- Upload ID document + selfie (Supabase Storage)
-- Status: Pending / Verified / Rejected
-- Restrict withdrawals, loans, cards until verified
+- Add "Edit Balance" button per user
+- Opens a dialog showing all their wallets (per currency)
+- Admin enters new available_balance + optional note
+- Updates wallet via `supabase.update` (admins have RLS UPDATE on wallets)
+- Logs an admin transaction entry for audit trail
+- Also add freeze/unfreeze toggle per user
 
-### 7. Card System
+### 6. Currency Conversion / Swap Feature
 
-- Apply for virtual debit card
-- Admin approval flow
-- Display card details (number, expiry, CVV — generated)
-- Freeze/unfreeze, spending limits, online/international toggles
+New route `/convert`:
 
-### 8. Loan System
+- Select "From" currency (from user's wallets)
+- Select "To" currency (any supported)
+- Enter amount → shows real-time converted amount using exchange_rates table
+- "Swap" button: deducts from source wallet, credits target wallet (creates one if missing), logs as `currency_conversion` transaction
+- Add link from dashboard quick actions
+- Display current rate and small fee notice (e.g., 0.5% spread for realism)
 
-- Apply: amount + duration
-- Admin approval → balance credited
-- Repayment schedule generation
-- Credit score impact
+### 7. Exchange Rates — Admin Manual + Simulated
 
-### 9. Credit Score
+Enhance admin panel with a new "Rates" tab:
 
-- Score based on: loan repayments, transaction behavior, account age
-- Affects loan approval and limits
-- Displayed on dashboard
+- Lists all configured rate pairs (USD↔NGN, USD↔GBP, etc.)
+- Admin can manually edit any rate inline → saves to `exchange_rates`
+- "Simulate Rates" button: fetches realistic rates via free public API `https://open.er-api.com/v6/latest/USD` (no key needed) and updates all pairs
+- "Auto-Simulate" toggle: when on, system uses simulated rates with small random fluctuation (±2%) added on each fetch
+- Seed initial rates for all 8 supported currency pairs on first load
+- Supabase realtime subscriptions so the dashboard updates instantly when deposits /loans are approved and balance are deducted when a transfer or bill payment and other payments are made
+  Build a secure role-based admin management system with hierarchical permissions. 
+  👤 Roles
+  There are 3 roles:
+  super_admin (main admin)
+  admin (created by super admin)
+  user
+  🔐 Authentication
+  Email and password login (Gmail supported)
+  Secure password hashing
+  Session-based authentication
+  🧠 Role Permissions
+  Super Admin:
+  Can create new admins using email
+  Can promote or demote any user to admin
+  Can view ALL users in the system
+  Can view ALL admins
+  Has full access to admin dashboard
+  Admin:
+  Can log into admin dashboard
+  Can ONLY view users assigned to them
+  Cannot see users assigned to other admins
+  Cannot promote or demote admins Cannot access super admin features
 
-### 10. Bill Payments
+### Technical Notes
 
-- Airtime, Electricity, Internet categories
-- Amount input, deduct from balance
+- New dependency: `qrcode.react` for crypto QR codes
+- New files: `src/routes/about.tsx`, `src/routes/convert.tsx`, `src/components/install-prompt.tsx`, `public/manifest.webmanifest`, `public/icon-192.png`, `public/icon-512.png`
+- Updated files: `src/routes/deposit.tsx`, `src/routes/transactions.tsx`, `src/routes/admin.tsx`, `src/routes/dashboard.tsx`, `src/routes/__root.tsx`, `src/routes/index.tsx`, `src/lib/currency.ts` (add convert helper)
+- Migration: seed `exchange_rates` table with default pairs
+- PWA caveat: install prompt only works on the published URL (capitalcrest.lovable.app), not in Lovable editor preview — this is browser behavior
 
-### 11. Savings Feature
+### Layout
 
-- Create savings goal with lock period
-- Simulated interest earnings
-- Auto-unlock on maturity
-
-### 12. Analytics & Statements
-
-- Spending by category charts
-- Monthly insights
-- Generate downloadable PDF statements
-
-### 13. Notifications
-
-- In-app notification center
-- Alerts for all financial activity
-
-### 14. Referral System
-
-- Unique referral code per user
-- Track invites, earn bonus on signup
-
-### 15. Fraud Detection (Basic)
-
-- Flag large transactions (configurable threshold)
-- Flag rapid consecutive withdrawals
-- Auto-freeze suspicious accounts
-
-### 16. Admin Panel (Full Control)
-
-- Route: `/admin` — restricted to admin role
-- **Users**: Viewing 
-
-17. Create everything at once, don't ask me any questions, approve cloud and create everything at once 
-  &nbsp;
+```text
+/                → Landing (+ About link)
+/about           → NEW: Bank info + customer service
+/dashboard       → Existing
+/deposit         → Enhanced: Bank/Crypto/Card tabs
+/transactions    → Enhanced: filters, search, export
+/convert         → NEW: Currency swap
+/admin           → Enhanced: Edit balances + Rates tab
+```
