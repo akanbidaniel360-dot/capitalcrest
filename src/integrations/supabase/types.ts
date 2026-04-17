@@ -492,7 +492,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "super_admin"
       card_status: "pending" | "active" | "frozen" | "cancelled"
       kyc_status: "none" | "pending" | "verified" | "rejected"
       loan_status:
@@ -530,6 +530,8 @@ export type Database = {
         | "interest"
         | "referral_bonus"
         | "card_payment"
+        | "currency_conversion"
+        | "admin_adjustment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -657,7 +659,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "super_admin"],
       card_status: ["pending", "active", "frozen", "cancelled"],
       kyc_status: ["none", "pending", "verified", "rejected"],
       loan_status: [
@@ -698,6 +700,8 @@ export const Constants = {
         "interest",
         "referral_bonus",
         "card_payment",
+        "currency_conversion",
+        "admin_adjustment",
       ],
     },
   },
