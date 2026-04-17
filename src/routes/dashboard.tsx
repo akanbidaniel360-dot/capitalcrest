@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Shield, ArrowUpRight, ArrowDownLeft, Send, Receipt, Landmark,
   CreditCard, Bell, LogOut, User, ChevronRight, Copy, Eye, EyeOff,
-  Settings, TrendingUp, PiggyBank,
+  Settings, TrendingUp, PiggyBank, Repeat,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -39,7 +39,7 @@ function DashboardPage() {
         .select("*")
         .eq("user_id", user.id)
         .eq("currency", profile?.primary_currency ?? "USD")
-        .single();
+        .maybeSingle();
       setWallet(w);
 
       const { data: t } = await supabase
@@ -58,6 +58,24 @@ function DashboardPage() {
       setNotifications(count ?? 0);
     };
     fetchData();
+
+    // Realtime: refresh on wallet, transaction, notification changes
+    const channel = supabase
+      .channel(`dash-${user.id}`)
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "wallets", filter: `user_id=eq.${user.id}` },
+        () => fetchData()
+      )
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "transactions", filter: `user_id=eq.${user.id}` },
+        () => fetchData()
+      )
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        () => fetchData()
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, [user, profile]);
 
   if (isLoading || !profile) {
@@ -76,9 +94,11 @@ function DashboardPage() {
     { icon: ArrowDownLeft, label: "Deposit", to: "/deposit", color: "bg-emerald/10 text-emerald" },
     { icon: ArrowUpRight, label: "Withdraw", to: "/withdraw", color: "bg-destructive/10 text-destructive" },
     { icon: Send, label: "Transfer", to: "/transfer", color: "bg-primary/10 text-primary" },
+    { icon: Repeat, label: "Convert", to: "/convert", color: "bg-chart-2/10 text-chart-2" },
     { icon: Receipt, label: "Pay Bills", to: "/bills", color: "bg-chart-4/10 text-chart-4" },
-    { icon: Landmark, label: "Loan", to: "/loans", color: "bg-chart-2/10 text-chart-2" },
+    { icon: Landmark, label: "Loan", to: "/loans", color: "bg-chart-3/10 text-chart-3" },
     { icon: CreditCard, label: "Cards", to: "/cards", color: "bg-chart-5/10 text-chart-5" },
+    { icon: Receipt, label: "History", to: "/transactions", color: "bg-muted text-foreground" },
   ];
 
   const copyAccount = () => {
@@ -189,17 +209,17 @@ function DashboardPage() {
         {/* Quick Actions */}
         <div className="mt-6">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Quick Actions</h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             {quickActions.map((a) => (
               <Link key={a.label} to={a.to as any}>
                 <motion.div
                   whileTap={{ scale: 0.95 }}
-                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30"
+                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/30"
                 >
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${a.color}`}>
-                    <a.icon className="h-5 w-5" />
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full ${a.color}`}>
+                    <a.icon className="h-4 w-4" />
                   </div>
-                  <span className="text-xs font-medium text-foreground">{a.label}</span>
+                  <span className="text-[10px] font-medium text-foreground text-center">{a.label}</span>
                 </motion.div>
               </Link>
             ))}
@@ -296,7 +316,7 @@ function DashboardPage() {
           {[
             { icon: Shield, label: "Home", to: "/dashboard" },
             { icon: Send, label: "Transfer", to: "/transfer" },
-            { icon: CreditCard, label: "Cards", to: "/cards" },
+            { icon: Receipt, label: "History", to: "/transactions" },
             { icon: User, label: "Account", to: "/settings" },
           ].map((item) => (
             <Link key={item.label} to={item.to as any} className="flex flex-col items-center gap-0.5 px-3 py-1">
