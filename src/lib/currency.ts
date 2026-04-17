@@ -22,3 +22,9 @@ export function formatCurrency(amount: number, currency: string): string {
   const symbol = getCurrencySymbol(currency);
   return `${symbol}${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+export const CONVERSION_FEE_RATE = 0.005; // 0.5% spread
+
+export function convertAmount(amount: number, rate: number): number {
+  return amount * rate * (1 - CONVERSION_FEE_RATE);
+}
