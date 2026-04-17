@@ -20,10 +20,12 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoansRouteImport } from './routes/loans'
 import { Route as DepositRouteImport } from './routes/deposit'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ConvertRouteImport } from './routes/convert'
 import { Route as CardsRouteImport } from './routes/cards'
 import { Route as BillsRouteImport } from './routes/bills'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 
 const WithdrawRoute = WithdrawRouteImport.update({
@@ -81,6 +83,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConvertRoute = ConvertRouteImport.update({
+  id: '/convert',
+  path: '/convert',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CardsRoute = CardsRouteImport.update({
   id: '/cards',
   path: '/cards',
@@ -101,6 +108,11 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -109,10 +121,12 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
   '/bills': typeof BillsRoute
   '/cards': typeof CardsRoute
+  '/convert': typeof ConvertRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
   '/loans': typeof LoansRoute
@@ -127,10 +141,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
   '/bills': typeof BillsRoute
   '/cards': typeof CardsRoute
+  '/convert': typeof ConvertRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
   '/loans': typeof LoansRoute
@@ -146,10 +162,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
   '/analytics': typeof AnalyticsRoute
   '/bills': typeof BillsRoute
   '/cards': typeof CardsRoute
+  '/convert': typeof ConvertRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
   '/loans': typeof LoansRoute
@@ -166,10 +184,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/admin'
     | '/analytics'
     | '/bills'
     | '/cards'
+    | '/convert'
     | '/dashboard'
     | '/deposit'
     | '/loans'
@@ -184,10 +204,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/admin'
     | '/analytics'
     | '/bills'
     | '/cards'
+    | '/convert'
     | '/dashboard'
     | '/deposit'
     | '/loans'
@@ -202,10 +224,12 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/admin'
     | '/analytics'
     | '/bills'
     | '/cards'
+    | '/convert'
     | '/dashboard'
     | '/deposit'
     | '/loans'
@@ -221,10 +245,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
   AnalyticsRoute: typeof AnalyticsRoute
   BillsRoute: typeof BillsRoute
   CardsRoute: typeof CardsRoute
+  ConvertRoute: typeof ConvertRoute
   DashboardRoute: typeof DashboardRoute
   DepositRoute: typeof DepositRoute
   LoansRoute: typeof LoansRoute
@@ -317,6 +343,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/convert': {
+      id: '/convert'
+      path: '/convert'
+      fullPath: '/convert'
+      preLoaderRoute: typeof ConvertRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cards': {
       id: '/cards'
       path: '/cards'
@@ -345,6 +378,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -357,10 +397,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
   AnalyticsRoute: AnalyticsRoute,
   BillsRoute: BillsRoute,
   CardsRoute: CardsRoute,
+  ConvertRoute: ConvertRoute,
   DashboardRoute: DashboardRoute,
   DepositRoute: DepositRoute,
   LoansRoute: LoansRoute,
@@ -376,3 +418,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
