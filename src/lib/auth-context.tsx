@@ -23,6 +23,7 @@ interface AuthState {
   session: Session | null;
   profile: Profile | null;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isLoading: boolean;
 }
 
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session: null,
     profile: null,
     isAdmin: false,
+    isSuperAdmin: false,
     isLoading: true,
   });
 
@@ -56,29 +58,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("role")
       .eq("user_id", userId);
 
-    const isAdmin = roles?.some((r) => r.role === "admin") ?? false;
+    const isSuperAdmin = roles?.some((r) => r.role === "super_admin") ?? false;
+    const isAdmin = isSuperAdmin || (roles?.some((r) => r.role === "admin") ?? false);
 
-    return { profile: profile as Profile | null, isAdmin };
+    return { profile: profile as Profile | null, isAdmin, isSuperAdmin };
   };
 
   const refreshProfile = async () => {
     if (!state.user) return;
-    const { profile, isAdmin } = await fetchProfile(state.user.id);
-    setState((s) => ({ ...s, profile, isAdmin }));
+    const { profile, isAdmin, isSuperAdmin } = await fetchProfile(state.user.id);
+    setState((s) => ({ ...s, profile, isAdmin, isSuperAdmin }));
   };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
-          // Use setTimeout to avoid Supabase deadlock on auth state change
           setTimeout(async () => {
-            const { profile, isAdmin } = await fetchProfile(session.user.id);
+            const { profile, isAdmin, isSuperAdmin } = await fetchProfile(session.user.id);
             setState({
               user: session.user,
               session,
               profile,
               isAdmin,
+              isSuperAdmin,
               isLoading: false,
             });
           }, 0);
@@ -88,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             session: null,
             profile: null,
             isAdmin: false,
+            isSuperAdmin: false,
             isLoading: false,
           });
         }
@@ -96,12 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const { profile, isAdmin } = await fetchProfile(session.user.id);
+        const { profile, isAdmin, isSuperAdmin } = await fetchProfile(session.user.id);
         setState({
           user: session.user,
           session,
           profile,
           isAdmin,
+          isSuperAdmin,
           isLoading: false,
         });
       } else {

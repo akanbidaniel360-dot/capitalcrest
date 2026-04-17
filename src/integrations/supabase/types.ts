@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_assignments: {
+        Row: {
+          admin_id: string
+          assigned_by: string | null
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          admin_id: string
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          admin_id?: string
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       beneficiaries: {
         Row: {
           account_number: string | null
@@ -481,6 +505,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_manages_user: {
+        Args: { _admin_id: string; _target_user_id: string }
+        Returns: boolean
+      }
       generate_account_number: { Args: never; Returns: string }
       generate_referral_code: { Args: never; Returns: string }
       has_role: {
@@ -490,9 +518,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_any_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "super_admin"
       card_status: "pending" | "active" | "frozen" | "cancelled"
       kyc_status: "none" | "pending" | "verified" | "rejected"
       loan_status:
@@ -530,6 +560,8 @@ export type Database = {
         | "interest"
         | "referral_bonus"
         | "card_payment"
+        | "currency_conversion"
+        | "admin_adjustment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -657,7 +689,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "super_admin"],
       card_status: ["pending", "active", "frozen", "cancelled"],
       kyc_status: ["none", "pending", "verified", "rejected"],
       loan_status: [
@@ -698,6 +730,8 @@ export const Constants = {
         "interest",
         "referral_bonus",
         "card_payment",
+        "currency_conversion",
+        "admin_adjustment",
       ],
     },
   },
