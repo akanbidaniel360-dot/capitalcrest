@@ -33,6 +33,9 @@ function LandingPage() {
             <span className="text-lg font-bold text-foreground">Capital Crest</span>
           </div>
           <div className="flex items-center gap-2">
+            <Link to="/about" className="hidden sm:block">
+              <Button variant="ghost" size="sm">About</Button>
+            </Link>
             <ThemeToggle />
             {user ? (
               <Link to="/dashboard">
@@ -124,6 +127,11 @@ function LandingPage() {
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
             <span className="font-semibold text-foreground">Capital Crest</span>
+          </div>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <Link to="/about" className="hover:text-foreground">About</Link>
+            <a href="mailto:support@capitalcrest.app" className="hover:text-foreground">Support</a>
+            <Link to="/login" className="hover:text-foreground">Sign in</Link>
           </div>
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Capital Crest. All rights reserved.
