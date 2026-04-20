@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   ArrowLeft, Shield, Check, X, Wallet, RefreshCw, Snowflake,
-  UserPlus, Crown, ShieldCheck, Trash2,
+  UserPlus, Crown, ShieldCheck, Trash2, Bitcoin, Gift, Receipt, KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, CURRENCIES } from "@/lib/currency";
+import { maskAccountNumber } from "@/lib/mask";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
