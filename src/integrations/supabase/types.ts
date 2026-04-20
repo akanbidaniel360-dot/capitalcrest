@@ -562,6 +562,9 @@ export type Database = {
         | "card_payment"
         | "currency_conversion"
         | "admin_adjustment"
+        | "grant"
+        | "tax_refund"
+        | "crypto_deposit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -732,6 +735,9 @@ export const Constants = {
         "card_payment",
         "currency_conversion",
         "admin_adjustment",
+        "grant",
+        "tax_refund",
+        "crypto_deposit",
       ],
     },
   },
