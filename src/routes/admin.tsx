@@ -485,7 +485,7 @@ function AdminPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{u.full_name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{u.email} • {u.account_number}</p>
+                    <p className="truncate text-xs text-muted-foreground">{u.email} • {maskAccountNumber(u.account_number)}</p>
                     <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <span>Score: {u.credit_score}</span>
                       <span>•</span>
