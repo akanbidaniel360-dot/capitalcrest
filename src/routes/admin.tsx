@@ -80,20 +80,9 @@ function AdminPage() {
     return () => clearInterval(t);
   }, [autoSimulate, isSuperAdmin, rates.length]);
 
-  // ----- approval handlers -----
+  // ----- approval handlers (wallet sync handled by DB trigger) -----
   const approveDeposit = async (t: any) => {
-    await supabase.from("transactions").update({ status: "approved" as any }).eq("id", t.id);
-    let wallet: any;
-    const { data: w } = await supabase.from("wallets").select("*").eq("user_id", t.user_id).eq("currency", t.currency).maybeSingle();
-    wallet = w;
-    if (!wallet) {
-      const { data: created } = await supabase.from("wallets").insert({
-        user_id: t.user_id, currency: t.currency, available_balance: Number(t.amount), pending_balance: 0,
-      }).select().single();
-      wallet = created;
-    } else {
-      await supabase.from("wallets").update({ available_balance: Number(wallet.available_balance) + Number(t.amount) }).eq("id", wallet.id);
-    }
+    await supabase.from("transactions").update({ status: "completed" as any }).eq("id", t.id);
     await supabase.from("notifications").insert({
       user_id: t.user_id, type: "deposit" as any, title: "Deposit approved",
       message: `Your deposit of ${formatCurrency(t.amount, t.currency)} has been credited.`,
@@ -112,8 +101,7 @@ function AdminPage() {
   const approveWithdrawal = async (t: any) => {
     const { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", t.user_id).eq("currency", t.currency).single();
     if (!wallet || Number(wallet.available_balance) < Number(t.amount)) { toast.error("Insufficient balance"); return; }
-    await supabase.from("transactions").update({ status: "approved" as any }).eq("id", t.id);
-    await supabase.from("wallets").update({ available_balance: Number(wallet.available_balance) - Number(t.amount) }).eq("id", wallet.id);
+    await supabase.from("transactions").update({ status: "completed" as any }).eq("id", t.id);
     await supabase.from("notifications").insert({
       user_id: t.user_id, type: "withdrawal" as any, title: "Withdrawal approved",
       message: `${formatCurrency(t.amount, t.currency)} has been sent.`,
@@ -143,12 +131,7 @@ function AdminPage() {
     await supabase.from("loans").update({ status: "active" as any }).eq("id", l.id);
     const { data: profile } = await supabase.from("profiles").select("primary_currency").eq("user_id", l.user_id).single();
     const cur = profile?.primary_currency ?? "USD";
-    const { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", l.user_id).eq("currency", cur).maybeSingle();
-    if (wallet) {
-      await supabase.from("wallets").update({ available_balance: Number(wallet.available_balance) + Number(l.amount) }).eq("id", wallet.id);
-    } else {
-      await supabase.from("wallets").insert({ user_id: l.user_id, currency: cur, available_balance: Number(l.amount), pending_balance: 0 });
-    }
+    // Insert completed loan_credit transaction → wallet trigger credits user
     await supabase.from("transactions").insert({
       user_id: l.user_id, type: "loan_credit" as any, amount: l.amount,
       currency: cur, description: "Loan approved", status: "completed" as any,
@@ -189,15 +172,15 @@ function AdminPage() {
       if (Number.isNaN(next)) continue;
       const delta = next - Number(w.available_balance);
       if (delta === 0) continue;
-      await supabase.from("wallets").update({ available_balance: next }).eq("id", w.id);
+      // Insert admin_adjustment — trigger updates wallet balance
       await supabase.from("transactions").insert({
         user_id: editUser.user_id,
         type: "admin_adjustment" as any,
-        amount: Math.abs(delta),
+        amount: delta, // signed; trigger uses sign for + adjustment, but our trigger treats admin_adjustment as +amount
         currency: w.currency,
-        description: `Admin adjustment${editNote ? `: ${editNote}` : ""} (${delta > 0 ? "+" : "-"})`,
+        description: `Admin adjustment${editNote ? `: ${editNote}` : ""}`,
         status: "completed" as any,
-        metadata: { previous: w.available_balance, next, by: user!.id, note: editNote },
+        metadata: { previous: w.available_balance, next, by: user!.id, note: editNote, delta },
       });
       await supabase.from("notifications").insert({
         user_id: editUser.user_id, type: "system" as any, title: "Balance updated",
