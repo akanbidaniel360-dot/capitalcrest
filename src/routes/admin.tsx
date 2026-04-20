@@ -34,6 +34,9 @@ function AdminPage() {
   const [pendingCards, setPendingCards] = useState<any[]>([]);
   const [rates, setRates] = useState<any[]>([]);
   const [autoSimulate, setAutoSimulate] = useState(false);
+  const [cryptoDeposits, setCryptoDeposits] = useState<any[]>([]);
+  const [pendingGrants, setPendingGrants] = useState<any[]>([]);
+  const [pendingRefunds, setPendingRefunds] = useState<any[]>([]);
 
   // Edit balance dialog
   const [editUser, setEditUser] = useState<any>(null);
