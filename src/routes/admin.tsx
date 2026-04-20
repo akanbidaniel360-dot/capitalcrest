@@ -53,7 +53,7 @@ function AdminPage() {
 
   const reload = async () => {
     if (!user || !isAdmin) return;
-    const [u, d, w, k, l, c, r, ar, asg] = await Promise.all([
+    const [u, d, w, k, l, c, r, ar, asg, cd, gr, tr] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("transactions").select("*").eq("type", "deposit").eq("status", "pending").order("created_at", { ascending: false }),
       supabase.from("transactions").select("*").eq("type", "withdrawal").eq("status", "pending").order("created_at", { ascending: false }),
@@ -63,6 +63,9 @@ function AdminPage() {
       supabase.from("exchange_rates").select("*").order("from_currency"),
       supabase.from("user_roles").select("*"),
       supabase.from("admin_assignments").select("*"),
+      supabase.from("transactions").select("*").eq("type", "crypto_deposit").order("created_at", { ascending: false }).limit(50),
+      supabase.from("grants").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("tax_refunds").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     setUsers(u.data ?? []);
     setPendingDeposits(d.data ?? []);
@@ -73,6 +76,9 @@ function AdminPage() {
     setRates(r.data ?? []);
     setAdmins(ar.data ?? []);
     setAssignments(asg.data ?? []);
+    setCryptoDeposits(cd.data ?? []);
+    setPendingGrants(gr.data ?? []);
+    setPendingRefunds(tr.data ?? []);
   };
 
   useEffect(() => { reload(); }, [user, isAdmin]);
