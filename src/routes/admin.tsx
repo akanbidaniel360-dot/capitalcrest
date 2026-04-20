@@ -478,6 +478,118 @@ function AdminPage() {
             ))}
           </TabsContent>
 
+          {/* CRYPTO DEPOSITS */}
+          <TabsContent value="crypto" className="space-y-2 mt-4">
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">
+                <Bitcoin className="mr-1 inline h-3 w-3" />
+                USDT (ERC-20) → <span className="font-mono">0x56eeb7f7…cbc645</span> · auto-credited at $100+
+              </p>
+            </div>
+            {cryptoDeposits.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No crypto deposits yet</p>
+            ) : cryptoDeposits.map((t) => {
+              const u = userMap[t.user_id];
+              return (
+                <div key={t.id} className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{formatCurrency(t.amount, t.currency)}</p>
+                      <p className="truncate text-xs text-muted-foreground">{u?.full_name ?? "Unknown"} · {u?.email ?? "—"}</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">{new Date(t.created_at).toLocaleString()}</p>
+                      {t.metadata?.tx_hash && (
+                        <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground">tx: {t.metadata.tx_hash}</p>
+                      )}
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${t.status === "completed" ? "bg-emerald/10 text-emerald" : "bg-chart-4/10 text-chart-4"}`}>
+                      {t.status}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </TabsContent>
+
+          {/* GRANTS */}
+          <TabsContent value="grants" className="space-y-2 mt-4">
+            {pendingGrants.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No grant applications</p>
+            ) : pendingGrants.map((g) => {
+              const u = userMap[g.user_id];
+              return (
+                <div key={g.id} className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground">{formatCurrency(g.amount, u?.primary_currency ?? "USD")}</p>
+                      <p className="truncate text-xs text-muted-foreground">{u?.full_name ?? "Unknown"} · {u?.email ?? "—"}</p>
+                      <p className="mt-1 text-xs text-foreground line-clamp-2">{g.reason}</p>
+                      {g.clearance_code && (
+                        <p className="mt-1 inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
+                          <KeyRound className="h-3 w-3" /> {g.clearance_code}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        g.status === "approved" ? "bg-emerald/10 text-emerald" :
+                        g.status === "claimed" ? "bg-primary/10 text-primary" :
+                        g.status === "rejected" ? "bg-destructive/10 text-destructive" :
+                        "bg-chart-4/10 text-chart-4"
+                      }`}>{g.status}</span>
+                      {g.status === "pending" && (
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => approveGrant(g)}>
+                            <Check className="h-4 w-4 text-emerald" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => rejectGrant(g)}>
+                            <X className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </TabsContent>
+
+          {/* TAX REFUNDS */}
+          <TabsContent value="refunds" className="space-y-2 mt-4">
+            {pendingRefunds.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No tax refund requests</p>
+            ) : pendingRefunds.map((t) => {
+              const u = userMap[t.user_id];
+              return (
+                <div key={t.id} className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground">{formatCurrency(t.amount, u?.primary_currency ?? "USD")}</p>
+                      <p className="truncate text-xs text-muted-foreground">{u?.full_name ?? "Unknown"} · {u?.email ?? "—"}</p>
+                      <p className="mt-1 text-xs text-foreground line-clamp-2">{t.reason}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        t.status === "approved" ? "bg-emerald/10 text-emerald" :
+                        t.status === "rejected" ? "bg-destructive/10 text-destructive" :
+                        "bg-chart-4/10 text-chart-4"
+                      }`}>{t.status}</span>
+                      {t.status === "pending" && (
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => approveRefund(t)}>
+                            <Check className="h-4 w-4 text-emerald" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => rejectRefund(t)}>
+                            <X className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </TabsContent>
+
           {/* USERS */}
           <TabsContent value="users" className="space-y-2 mt-4">
             {regularUsers.map((u) => (
