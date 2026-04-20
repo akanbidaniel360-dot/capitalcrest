@@ -389,6 +389,9 @@ function AdminPage() {
             <TabsTrigger value="kyc">KYC ({pendingKyc.length})</TabsTrigger>
             <TabsTrigger value="loans">Loans ({pendingLoans.length})</TabsTrigger>
             <TabsTrigger value="cards">Cards ({pendingCards.length})</TabsTrigger>
+            <TabsTrigger value="crypto"><Bitcoin className="mr-1 h-3 w-3" />Crypto</TabsTrigger>
+            <TabsTrigger value="grants"><Gift className="mr-1 h-3 w-3" />Grants ({pendingGrants.filter(g => g.status === "pending").length})</TabsTrigger>
+            <TabsTrigger value="refunds"><Receipt className="mr-1 h-3 w-3" />Refunds ({pendingRefunds.filter(r => r.status === "pending").length})</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="rates">Rates</TabsTrigger>
             {isSuperAdmin && <TabsTrigger value="admins">Admins</TabsTrigger>}
