@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   ArrowLeft, Shield, Check, X, Wallet, RefreshCw, Snowflake,
-  UserPlus, Crown, ShieldCheck, Trash2,
+  UserPlus, Crown, ShieldCheck, Trash2, Bitcoin, Gift, Receipt, KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, CURRENCIES } from "@/lib/currency";
+import { maskAccountNumber } from "@/lib/mask";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
@@ -33,6 +34,9 @@ function AdminPage() {
   const [pendingCards, setPendingCards] = useState<any[]>([]);
   const [rates, setRates] = useState<any[]>([]);
   const [autoSimulate, setAutoSimulate] = useState(false);
+  const [cryptoDeposits, setCryptoDeposits] = useState<any[]>([]);
+  const [pendingGrants, setPendingGrants] = useState<any[]>([]);
+  const [pendingRefunds, setPendingRefunds] = useState<any[]>([]);
 
   // Edit balance dialog
   const [editUser, setEditUser] = useState<any>(null);
@@ -49,7 +53,7 @@ function AdminPage() {
 
   const reload = async () => {
     if (!user || !isAdmin) return;
-    const [u, d, w, k, l, c, r, ar, asg] = await Promise.all([
+    const [u, d, w, k, l, c, r, ar, asg, cd, gr, tr] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("transactions").select("*").eq("type", "deposit").eq("status", "pending").order("created_at", { ascending: false }),
       supabase.from("transactions").select("*").eq("type", "withdrawal").eq("status", "pending").order("created_at", { ascending: false }),
@@ -59,6 +63,9 @@ function AdminPage() {
       supabase.from("exchange_rates").select("*").order("from_currency"),
       supabase.from("user_roles").select("*"),
       supabase.from("admin_assignments").select("*"),
+      supabase.from("transactions").select("*").eq("type", "crypto_deposit").order("created_at", { ascending: false }).limit(50),
+      supabase.from("grants").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("tax_refunds").select("*").order("created_at", { ascending: false }).limit(100),
     ]);
     setUsers(u.data ?? []);
     setPendingDeposits(d.data ?? []);
@@ -69,6 +76,9 @@ function AdminPage() {
     setRates(r.data ?? []);
     setAdmins(ar.data ?? []);
     setAssignments(asg.data ?? []);
+    setCryptoDeposits(cd.data ?? []);
+    setPendingGrants(gr.data ?? []);
+    setPendingRefunds(tr.data ?? []);
   };
 
   useEffect(() => { reload(); }, [user, isAdmin]);
@@ -265,11 +275,74 @@ function AdminPage() {
     reload();
   };
 
+  // ----- grants -----
+  const genCode = () => Math.random().toString(36).slice(2, 8).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
+
+  const approveGrant = async (g: any) => {
+    const code = genCode();
+    const { error } = await supabase.from("grants").update({
+      status: "approved", clearance_code: code, approved_by: user!.id, approved_at: new Date().toISOString(),
+      admin_notes: `Clearance code: ${code}`,
+    }).eq("id", g.id);
+    if (error) { toast.error(error.message); return; }
+    await supabase.from("notifications").insert({
+      user_id: g.user_id, type: "system" as any, title: "Grant approved",
+      message: `Your grant of $${g.amount} is approved. Use clearance code ${code} on the Grants page to unlock funds.`,
+    });
+    toast.success(`Approved — code: ${code}`);
+    reload();
+  };
+
+  const rejectGrant = async (g: any) => {
+    await supabase.from("grants").update({ status: "rejected", approved_by: user!.id, approved_at: new Date().toISOString() }).eq("id", g.id);
+    await supabase.from("notifications").insert({
+      user_id: g.user_id, type: "system" as any, title: "Grant rejected",
+      message: "Your grant application was not approved at this time.",
+    });
+    toast.success("Grant rejected");
+    reload();
+  };
+
+  // ----- tax refunds -----
+  const approveRefund = async (t: any) => {
+    const { data: profile } = await supabase.from("profiles").select("primary_currency").eq("user_id", t.user_id).single();
+    const cur = profile?.primary_currency ?? "USD";
+    // Insert completed transaction → trigger credits wallet
+    await supabase.from("transactions").insert({
+      user_id: t.user_id, type: "tax_refund" as any, amount: t.amount, currency: cur,
+      description: `Tax refund: ${t.reason}`, status: "completed" as any,
+    });
+    await supabase.from("tax_refunds").update({
+      status: "approved", approved_by: user!.id, approved_at: new Date().toISOString(),
+    }).eq("id", t.id);
+    await supabase.from("notifications").insert({
+      user_id: t.user_id, type: "system" as any, title: "Tax refund approved",
+      message: `${formatCurrency(t.amount, cur)} has been credited to your account.`,
+    });
+    toast.success("Refund approved & credited");
+    reload();
+  };
+
+  const rejectRefund = async (t: any) => {
+    await supabase.from("tax_refunds").update({ status: "rejected", approved_by: user!.id, approved_at: new Date().toISOString() }).eq("id", t.id);
+    await supabase.from("notifications").insert({
+      user_id: t.user_id, type: "system" as any, title: "Tax refund rejected",
+      message: "Your tax refund request was not approved.",
+    });
+    toast.success("Refund rejected");
+    reload();
+  };
+
   // ----- derived -----
   const adminUserIds = useMemo(() => new Set(admins.filter((r) => r.role === "admin" || r.role === "super_admin").map((r) => r.user_id)), [admins]);
   const superAdminIds = useMemo(() => new Set(admins.filter((r) => r.role === "super_admin").map((r) => r.user_id)), [admins]);
   const adminProfiles = useMemo(() => users.filter((u) => adminUserIds.has(u.user_id)), [users, adminUserIds]);
   const regularUsers = useMemo(() => users.filter((u) => !adminUserIds.has(u.user_id)), [users, adminUserIds]);
+  const userMap = useMemo(() => {
+    const m: Record<string, any> = {};
+    users.forEach((u) => { m[u.user_id] = u; });
+    return m;
+  }, [users]);
   const assignmentMap = useMemo(() => {
     const m: Record<string, string> = {};
     assignments.forEach((a) => { m[a.user_id] = a.admin_id; });
@@ -316,6 +389,9 @@ function AdminPage() {
             <TabsTrigger value="kyc">KYC ({pendingKyc.length})</TabsTrigger>
             <TabsTrigger value="loans">Loans ({pendingLoans.length})</TabsTrigger>
             <TabsTrigger value="cards">Cards ({pendingCards.length})</TabsTrigger>
+            <TabsTrigger value="crypto"><Bitcoin className="mr-1 h-3 w-3" />Crypto</TabsTrigger>
+            <TabsTrigger value="grants"><Gift className="mr-1 h-3 w-3" />Grants ({pendingGrants.filter(g => g.status === "pending").length})</TabsTrigger>
+            <TabsTrigger value="refunds"><Receipt className="mr-1 h-3 w-3" />Refunds ({pendingRefunds.filter(r => r.status === "pending").length})</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="rates">Rates</TabsTrigger>
             {isSuperAdmin && <TabsTrigger value="admins">Admins</TabsTrigger>}
@@ -402,6 +478,118 @@ function AdminPage() {
             ))}
           </TabsContent>
 
+          {/* CRYPTO DEPOSITS */}
+          <TabsContent value="crypto" className="space-y-2 mt-4">
+            <div className="rounded-xl border border-border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">
+                <Bitcoin className="mr-1 inline h-3 w-3" />
+                USDT (ERC-20) → <span className="font-mono">0x56eeb7f7…cbc645</span> · auto-credited at $100+
+              </p>
+            </div>
+            {cryptoDeposits.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No crypto deposits yet</p>
+            ) : cryptoDeposits.map((t) => {
+              const u = userMap[t.user_id];
+              return (
+                <div key={t.id} className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{formatCurrency(t.amount, t.currency)}</p>
+                      <p className="truncate text-xs text-muted-foreground">{u?.full_name ?? "Unknown"} · {u?.email ?? "—"}</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">{new Date(t.created_at).toLocaleString()}</p>
+                      {t.metadata?.tx_hash && (
+                        <p className="mt-1 truncate font-mono text-[10px] text-muted-foreground">tx: {t.metadata.tx_hash}</p>
+                      )}
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${t.status === "completed" ? "bg-emerald/10 text-emerald" : "bg-chart-4/10 text-chart-4"}`}>
+                      {t.status}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </TabsContent>
+
+          {/* GRANTS */}
+          <TabsContent value="grants" className="space-y-2 mt-4">
+            {pendingGrants.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No grant applications</p>
+            ) : pendingGrants.map((g) => {
+              const u = userMap[g.user_id];
+              return (
+                <div key={g.id} className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground">{formatCurrency(g.amount, u?.primary_currency ?? "USD")}</p>
+                      <p className="truncate text-xs text-muted-foreground">{u?.full_name ?? "Unknown"} · {u?.email ?? "—"}</p>
+                      <p className="mt-1 text-xs text-foreground line-clamp-2">{g.reason}</p>
+                      {g.clearance_code && (
+                        <p className="mt-1 inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
+                          <KeyRound className="h-3 w-3" /> {g.clearance_code}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        g.status === "approved" ? "bg-emerald/10 text-emerald" :
+                        g.status === "claimed" ? "bg-primary/10 text-primary" :
+                        g.status === "rejected" ? "bg-destructive/10 text-destructive" :
+                        "bg-chart-4/10 text-chart-4"
+                      }`}>{g.status}</span>
+                      {g.status === "pending" && (
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => approveGrant(g)}>
+                            <Check className="h-4 w-4 text-emerald" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => rejectGrant(g)}>
+                            <X className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </TabsContent>
+
+          {/* TAX REFUNDS */}
+          <TabsContent value="refunds" className="space-y-2 mt-4">
+            {pendingRefunds.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No tax refund requests</p>
+            ) : pendingRefunds.map((t) => {
+              const u = userMap[t.user_id];
+              return (
+                <div key={t.id} className="rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground">{formatCurrency(t.amount, u?.primary_currency ?? "USD")}</p>
+                      <p className="truncate text-xs text-muted-foreground">{u?.full_name ?? "Unknown"} · {u?.email ?? "—"}</p>
+                      <p className="mt-1 text-xs text-foreground line-clamp-2">{t.reason}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        t.status === "approved" ? "bg-emerald/10 text-emerald" :
+                        t.status === "rejected" ? "bg-destructive/10 text-destructive" :
+                        "bg-chart-4/10 text-chart-4"
+                      }`}>{t.status}</span>
+                      {t.status === "pending" && (
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => approveRefund(t)}>
+                            <Check className="h-4 w-4 text-emerald" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => rejectRefund(t)}>
+                            <X className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </TabsContent>
+
           {/* USERS */}
           <TabsContent value="users" className="space-y-2 mt-4">
             {regularUsers.map((u) => (
@@ -409,7 +597,7 @@ function AdminPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{u.full_name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{u.email} • {u.account_number}</p>
+                    <p className="truncate text-xs text-muted-foreground">{u.email} • {maskAccountNumber(u.account_number)}</p>
                     <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <span>Score: {u.credit_score}</span>
                       <span>•</span>
