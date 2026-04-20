@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, User, Shield, LogOut, Upload, Key, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { maskAccountNumber } from "@/lib/mask";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -97,7 +98,7 @@ function SettingsPage() {
             </div>
           </div>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Account Number</span><div className="flex items-center gap-1"><span className="font-mono font-medium text-foreground">{profile.account_number}</span><button onClick={() => { navigator.clipboard.writeText(profile.account_number); toast.success("Copied!"); }}><Copy className="h-3 w-3 text-muted-foreground" /></button></div></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Account Number</span><div className="flex items-center gap-1"><span className="font-mono font-medium text-foreground">{maskAccountNumber(profile.account_number)}</span><button onClick={() => { navigator.clipboard.writeText(profile.account_number); toast.success("Full account number copied!"); }}><Copy className="h-3 w-3 text-muted-foreground" /></button></div></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Country</span><span className="text-foreground">{profile.country}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Currency</span><span className="text-foreground">{profile.primary_currency}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Referral Code</span><span className="font-mono text-foreground">{profile.referral_code}</span></div>
