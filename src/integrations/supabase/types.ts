@@ -170,6 +170,51 @@ export type Database = {
         }
         Relationships: []
       }
+      grants: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          claimed_at: string | null
+          clearance_code: string | null
+          created_at: string
+          id: string
+          reason: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          claimed_at?: string | null
+          clearance_code?: string | null
+          created_at?: string
+          id?: string
+          reason: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          claimed_at?: string | null
+          clearance_code?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       kyc_documents: {
         Row: {
           admin_notes: string | null
@@ -407,6 +452,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_refunds: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          reason: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          reason: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -562,6 +646,9 @@ export type Database = {
         | "card_payment"
         | "currency_conversion"
         | "admin_adjustment"
+        | "grant"
+        | "tax_refund"
+        | "crypto_deposit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -732,6 +819,9 @@ export const Constants = {
         "card_payment",
         "currency_conversion",
         "admin_adjustment",
+        "grant",
+        "tax_refund",
+        "crypto_deposit",
       ],
     },
   },

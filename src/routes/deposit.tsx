@@ -68,21 +68,29 @@ function DepositPage() {
     e.preventDefault();
     const amt = parseFloat(cryptoAmount);
     if (!amt || amt <= 0) { toast.error("Enter the USDT amount you sent"); return; }
+    if (amt < 100) { toast.error("Minimum crypto deposit is $100 USDT"); return; }
     if (!txHash || txHash.length < 10) { toast.error("Enter a valid transaction hash"); return; }
     setCryptoLoading(true);
     try {
+      // Auto-completed — wallet trigger credits user instantly
       const { error } = await supabase.from("transactions").insert({
         user_id: user!.id,
-        type: "deposit" as const,
+        type: "crypto_deposit" as any,
         amount: amt,
-        currency: "USD", // USDT pegged to USD; admin can adjust on approval
+        currency: profile.primary_currency,
         description: "Crypto deposit (USDT-ERC20)",
-        status: "pending" as const,
+        status: "completed" as const,
         reference: txHash,
         metadata: { method: "crypto", network: "ERC20", asset: "USDT", wallet: USDT_WALLET, tx_hash: txHash },
       });
       if (error) throw error;
-      toast.success("Crypto deposit submitted! We'll verify on-chain and credit you shortly.");
+      await supabase.from("notifications").insert({
+        user_id: user!.id,
+        type: "deposit" as any,
+        title: "Crypto deposit credited",
+        message: `Your USDT deposit of ${amt.toFixed(2)} has been credited to your account.`,
+      });
+      toast.success(`${amt.toFixed(2)} USDT credited to your account!`);
       navigate({ to: "/dashboard" });
     } catch (err: any) {
       toast.error(err.message || "Failed to submit crypto deposit");
@@ -173,7 +181,7 @@ function DepositPage() {
               <div className="mt-4 flex gap-2 rounded-lg border border-chart-4/30 bg-chart-4/5 p-3">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-chart-4" />
                 <p className="text-[11px] leading-relaxed text-foreground">
-                  <strong>Important:</strong> Only send USDT on the <strong>Ethereum (ERC-20)</strong> network to this address. Sending other assets or using other networks (BEP20, TRC20) will result in permanent loss of funds.
+                  <strong>Important:</strong> Only send USDT on the <strong>Ethereum (ERC-20)</strong> network. Minimum deposit: <strong>$100</strong>. Funds are credited automatically — no admin approval required.
                 </p>
               </div>
             </div>
@@ -181,8 +189,8 @@ function DepositPage() {
             <form onSubmit={handleCryptoSubmit} className="space-y-3 rounded-2xl border border-border bg-card p-5">
               <p className="text-sm font-semibold text-foreground">Confirm your transfer</p>
               <div>
-                <Label>Amount sent (USDT)</Label>
-                <Input type="number" placeholder="0.00" value={cryptoAmount} onChange={(e) => setCryptoAmount(e.target.value)} min="0" step="0.01" required />
+                <Label>Amount sent (USDT) — min $100</Label>
+                <Input type="number" placeholder="100.00" value={cryptoAmount} onChange={(e) => setCryptoAmount(e.target.value)} min="100" step="0.01" required />
               </div>
               <div>
                 <Label>Transaction Hash</Label>

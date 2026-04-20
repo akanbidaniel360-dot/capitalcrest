@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { InstallAppPrompt } from "@/components/install-prompt";
+import { ChatWidget } from "@/components/chat-widget";
 
 import appCss from "../styles.css?url";
 
@@ -81,6 +82,7 @@ function RootComponent() {
       <Outlet />
       <Toaster position="top-right" />
       <InstallAppPrompt />
+      <ChatWidget />
     </AuthProvider>
   );
 }

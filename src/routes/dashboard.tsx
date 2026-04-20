@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import {
   Shield, ArrowUpRight, ArrowDownLeft, Send, Receipt, Landmark,
   CreditCard, Bell, LogOut, User, ChevronRight, Copy, Eye, EyeOff,
-  Settings, TrendingUp, PiggyBank, Repeat,
+  Settings, TrendingUp, PiggyBank, Repeat, Gift, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { maskAccountNumber } from "@/lib/mask";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
@@ -183,7 +184,7 @@ function DashboardPage() {
           <div className="mt-4 flex items-center justify-between rounded-lg bg-white/10 px-3 py-2 text-sm backdrop-blur-sm">
             <div>
               <p className="text-xs opacity-70">Account Number</p>
-              <p className="font-mono font-semibold">{profile.account_number}</p>
+              <p className="font-mono font-semibold">{maskAccountNumber(profile.account_number)}</p>
             </div>
             <button onClick={copyAccount} className="opacity-70 hover:opacity-100">
               <Copy className="h-4 w-4" />
@@ -238,6 +239,18 @@ function DashboardPage() {
             <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30">
               <TrendingUp className="h-5 w-5 text-primary" />
               <span className="text-sm font-medium text-foreground">Analytics</span>
+            </div>
+          </Link>
+          <Link to="/grants">
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30">
+              <Gift className="h-5 w-5 text-chart-3" />
+              <span className="text-sm font-medium text-foreground">Grants</span>
+            </div>
+          </Link>
+          <Link to="/tax-refund">
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/30">
+              <FileText className="h-5 w-5 text-chart-4" />
+              <span className="text-sm font-medium text-foreground">Tax Refund</span>
             </div>
           </Link>
         </div>
