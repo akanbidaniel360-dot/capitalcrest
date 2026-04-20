@@ -12,12 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WithdrawRouteImport } from './routes/withdraw'
 import { Route as TransferRouteImport } from './routes/transfer'
 import { Route as TransactionsRouteImport } from './routes/transactions'
+import { Route as TaxRefundRouteImport } from './routes/tax-refund'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SavingsRouteImport } from './routes/savings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoansRouteImport } from './routes/loans'
+import { Route as GrantsRouteImport } from './routes/grants'
 import { Route as DepositRouteImport } from './routes/deposit'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ConvertRouteImport } from './routes/convert'
@@ -41,6 +43,11 @@ const TransferRoute = TransferRouteImport.update({
 const TransactionsRoute = TransactionsRouteImport.update({
   id: '/transactions',
   path: '/transactions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TaxRefundRoute = TaxRefundRouteImport.update({
+  id: '/tax-refund',
+  path: '/tax-refund',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -71,6 +78,11 @@ const LoginRoute = LoginRouteImport.update({
 const LoansRoute = LoansRouteImport.update({
   id: '/loans',
   path: '/loans',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GrantsRoute = GrantsRouteImport.update({
+  id: '/grants',
+  path: '/grants',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DepositRoute = DepositRouteImport.update({
@@ -129,12 +141,14 @@ export interface FileRoutesByFullPath {
   '/convert': typeof ConvertRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
+  '/grants': typeof GrantsRoute
   '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/tax-refund': typeof TaxRefundRoute
   '/transactions': typeof TransactionsRoute
   '/transfer': typeof TransferRoute
   '/withdraw': typeof WithdrawRoute
@@ -149,12 +163,14 @@ export interface FileRoutesByTo {
   '/convert': typeof ConvertRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
+  '/grants': typeof GrantsRoute
   '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/tax-refund': typeof TaxRefundRoute
   '/transactions': typeof TransactionsRoute
   '/transfer': typeof TransferRoute
   '/withdraw': typeof WithdrawRoute
@@ -170,12 +186,14 @@ export interface FileRoutesById {
   '/convert': typeof ConvertRoute
   '/dashboard': typeof DashboardRoute
   '/deposit': typeof DepositRoute
+  '/grants': typeof GrantsRoute
   '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
   '/notifications': typeof NotificationsRoute
   '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/tax-refund': typeof TaxRefundRoute
   '/transactions': typeof TransactionsRoute
   '/transfer': typeof TransferRoute
   '/withdraw': typeof WithdrawRoute
@@ -192,12 +210,14 @@ export interface FileRouteTypes {
     | '/convert'
     | '/dashboard'
     | '/deposit'
+    | '/grants'
     | '/loans'
     | '/login'
     | '/notifications'
     | '/savings'
     | '/settings'
     | '/signup'
+    | '/tax-refund'
     | '/transactions'
     | '/transfer'
     | '/withdraw'
@@ -212,12 +232,14 @@ export interface FileRouteTypes {
     | '/convert'
     | '/dashboard'
     | '/deposit'
+    | '/grants'
     | '/loans'
     | '/login'
     | '/notifications'
     | '/savings'
     | '/settings'
     | '/signup'
+    | '/tax-refund'
     | '/transactions'
     | '/transfer'
     | '/withdraw'
@@ -232,12 +254,14 @@ export interface FileRouteTypes {
     | '/convert'
     | '/dashboard'
     | '/deposit'
+    | '/grants'
     | '/loans'
     | '/login'
     | '/notifications'
     | '/savings'
     | '/settings'
     | '/signup'
+    | '/tax-refund'
     | '/transactions'
     | '/transfer'
     | '/withdraw'
@@ -253,12 +277,14 @@ export interface RootRouteChildren {
   ConvertRoute: typeof ConvertRoute
   DashboardRoute: typeof DashboardRoute
   DepositRoute: typeof DepositRoute
+  GrantsRoute: typeof GrantsRoute
   LoansRoute: typeof LoansRoute
   LoginRoute: typeof LoginRoute
   NotificationsRoute: typeof NotificationsRoute
   SavingsRoute: typeof SavingsRoute
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
+  TaxRefundRoute: typeof TaxRefundRoute
   TransactionsRoute: typeof TransactionsRoute
   TransferRoute: typeof TransferRoute
   WithdrawRoute: typeof WithdrawRoute
@@ -285,6 +311,13 @@ declare module '@tanstack/react-router' {
       path: '/transactions'
       fullPath: '/transactions'
       preLoaderRoute: typeof TransactionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tax-refund': {
+      id: '/tax-refund'
+      path: '/tax-refund'
+      fullPath: '/tax-refund'
+      preLoaderRoute: typeof TaxRefundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -327,6 +360,13 @@ declare module '@tanstack/react-router' {
       path: '/loans'
       fullPath: '/loans'
       preLoaderRoute: typeof LoansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/grants': {
+      id: '/grants'
+      path: '/grants'
+      fullPath: '/grants'
+      preLoaderRoute: typeof GrantsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/deposit': {
@@ -405,12 +445,14 @@ const rootRouteChildren: RootRouteChildren = {
   ConvertRoute: ConvertRoute,
   DashboardRoute: DashboardRoute,
   DepositRoute: DepositRoute,
+  GrantsRoute: GrantsRoute,
   LoansRoute: LoansRoute,
   LoginRoute: LoginRoute,
   NotificationsRoute: NotificationsRoute,
   SavingsRoute: SavingsRoute,
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
+  TaxRefundRoute: TaxRefundRoute,
   TransactionsRoute: TransactionsRoute,
   TransferRoute: TransferRoute,
   WithdrawRoute: WithdrawRoute,
