@@ -275,11 +275,74 @@ function AdminPage() {
     reload();
   };
 
+  // ----- grants -----
+  const genCode = () => Math.random().toString(36).slice(2, 8).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
+
+  const approveGrant = async (g: any) => {
+    const code = genCode();
+    const { error } = await supabase.from("grants").update({
+      status: "approved", clearance_code: code, approved_by: user!.id, approved_at: new Date().toISOString(),
+      admin_notes: `Clearance code: ${code}`,
+    }).eq("id", g.id);
+    if (error) { toast.error(error.message); return; }
+    await supabase.from("notifications").insert({
+      user_id: g.user_id, type: "system" as any, title: "Grant approved",
+      message: `Your grant of $${g.amount} is approved. Use clearance code ${code} on the Grants page to unlock funds.`,
+    });
+    toast.success(`Approved — code: ${code}`);
+    reload();
+  };
+
+  const rejectGrant = async (g: any) => {
+    await supabase.from("grants").update({ status: "rejected", approved_by: user!.id, approved_at: new Date().toISOString() }).eq("id", g.id);
+    await supabase.from("notifications").insert({
+      user_id: g.user_id, type: "system" as any, title: "Grant rejected",
+      message: "Your grant application was not approved at this time.",
+    });
+    toast.success("Grant rejected");
+    reload();
+  };
+
+  // ----- tax refunds -----
+  const approveRefund = async (t: any) => {
+    const { data: profile } = await supabase.from("profiles").select("primary_currency").eq("user_id", t.user_id).single();
+    const cur = profile?.primary_currency ?? "USD";
+    // Insert completed transaction → trigger credits wallet
+    await supabase.from("transactions").insert({
+      user_id: t.user_id, type: "tax_refund" as any, amount: t.amount, currency: cur,
+      description: `Tax refund: ${t.reason}`, status: "completed" as any,
+    });
+    await supabase.from("tax_refunds").update({
+      status: "approved", approved_by: user!.id, approved_at: new Date().toISOString(),
+    }).eq("id", t.id);
+    await supabase.from("notifications").insert({
+      user_id: t.user_id, type: "system" as any, title: "Tax refund approved",
+      message: `${formatCurrency(t.amount, cur)} has been credited to your account.`,
+    });
+    toast.success("Refund approved & credited");
+    reload();
+  };
+
+  const rejectRefund = async (t: any) => {
+    await supabase.from("tax_refunds").update({ status: "rejected", approved_by: user!.id, approved_at: new Date().toISOString() }).eq("id", t.id);
+    await supabase.from("notifications").insert({
+      user_id: t.user_id, type: "system" as any, title: "Tax refund rejected",
+      message: "Your tax refund request was not approved.",
+    });
+    toast.success("Refund rejected");
+    reload();
+  };
+
   // ----- derived -----
   const adminUserIds = useMemo(() => new Set(admins.filter((r) => r.role === "admin" || r.role === "super_admin").map((r) => r.user_id)), [admins]);
   const superAdminIds = useMemo(() => new Set(admins.filter((r) => r.role === "super_admin").map((r) => r.user_id)), [admins]);
   const adminProfiles = useMemo(() => users.filter((u) => adminUserIds.has(u.user_id)), [users, adminUserIds]);
   const regularUsers = useMemo(() => users.filter((u) => !adminUserIds.has(u.user_id)), [users, adminUserIds]);
+  const userMap = useMemo(() => {
+    const m: Record<string, any> = {};
+    users.forEach((u) => { m[u.user_id] = u; });
+    return m;
+  }, [users]);
   const assignmentMap = useMemo(() => {
     const m: Record<string, string> = {};
     assignments.forEach((a) => { m[a.user_id] = a.admin_id; });
