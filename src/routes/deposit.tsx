@@ -180,7 +180,7 @@ function DepositPage() {
               <div className="mt-4 flex gap-2 rounded-lg border border-chart-4/30 bg-chart-4/5 p-3">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-chart-4" />
                 <p className="text-[11px] leading-relaxed text-foreground">
-                  <strong>Important:</strong> Only send USDT on the <strong>Ethereum (ERC-20)</strong> network. Minimum deposit: <strong>$100</strong>. Funds are credited automatically — no admin approval required.
+                  <strong>Important:</strong> Only send USDT on the <strong>Ethereum (ERC-20)</strong> network. Minimum deposit: <strong>$100</strong>. Funds will be credited after verification.
                 </p>
               </div>
             </div>
