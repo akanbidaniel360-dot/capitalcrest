@@ -6,9 +6,30 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Receipt, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Receipt, CheckCircle2, XCircle, Clock, FileText, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
+
+const FILING_STATUSES = [
+  "Single",
+  "Married Filing Jointly",
+  "Married Filing Separately",
+  "Head of Household",
+  "Qualifying Widow(er)",
+];
+
+const REFUND_REASONS = [
+  "Overpaid income tax",
+  "Excess withholding",
+  "Tax credit adjustment",
+  "Deduction correction",
+  "Amended return",
+  "Other",
+];
+
+const CURRENT_YEAR = new Date().getFullYear();
+const TAX_YEARS = [CURRENT_YEAR - 1, CURRENT_YEAR - 2, CURRENT_YEAR - 3, CURRENT_YEAR - 4];
 
 export const Route = createFileRoute("/tax-refund")({
   component: TaxRefundPage,
@@ -19,7 +40,15 @@ function TaxRefundPage() {
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
   const [amount, setAmount] = useState("");
+  const [taxYear, setTaxYear] = useState(String(CURRENT_YEAR - 1));
+  const [filingStatus, setFilingStatus] = useState(FILING_STATUSES[0]);
+  const [tin, setTin] = useState("");
+  const [employer, setEmployer] = useState("");
+  const [annualIncome, setAnnualIncome] = useState("");
+  const [taxPaid, setTaxPaid] = useState("");
+  const [reasonType, setReasonType] = useState(REFUND_REASONS[0]);
   const [reason, setReason] = useState("");
+  const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -47,15 +76,28 @@ function TaxRefundPage() {
     e.preventDefault();
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return; }
-    if (!reason.trim() || reason.length < 10) { toast.error("Reason must be at least 10 characters"); return; }
+    if (!tin.trim() || tin.replace(/\D/g, "").length < 9) { toast.error("Enter a valid Tax ID / SSN (9 digits)"); return; }
+    if (!employer.trim()) { toast.error("Employer / income source is required"); return; }
+    const income = parseFloat(annualIncome);
+    if (!income || income <= 0) { toast.error("Enter your annual income"); return; }
+    const paid = parseFloat(taxPaid);
+    if (!paid || paid <= 0) { toast.error("Enter total tax paid"); return; }
+    if (amt > paid) { toast.error("Refund amount cannot exceed tax paid"); return; }
+    if (!reason.trim() || reason.length < 10) { toast.error("Provide at least 10 characters of detail"); return; }
+    if (!consent) { toast.error("You must certify the information is accurate"); return; }
     setSubmitting(true);
     try {
+      const fullReason = `[${reasonType} · TY ${taxYear} · ${filingStatus}] ${reason.trim()}\nEmployer: ${employer} · Income: ${income} · Tax Paid: ${paid} · TIN: ***-**-${tin.replace(/\D/g, "").slice(-4)}`;
       const { error } = await supabase.from("tax_refunds").insert({
-        user_id: user!.id, amount: amt, reason: reason.trim(), status: "pending",
+        user_id: user!.id,
+        amount: amt,
+        reason: fullReason,
+        status: "pending",
       });
       if (error) throw error;
-      toast.success("Tax refund submitted — your request will be verified shortly.");
-      setAmount(""); setReason("");
+      toast.success("Tax refund filed — your request will be verified shortly.");
+      setAmount(""); setReason(""); setTin(""); setEmployer("");
+      setAnnualIncome(""); setTaxPaid(""); setConsent(false);
     } catch (err: any) {
       toast.error(err.message || "Submission failed");
     } finally {
@@ -84,18 +126,109 @@ function TaxRefundPage() {
 
       <div className="mx-auto max-w-lg px-4 py-6 space-y-6">
         <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="mb-3 font-semibold text-foreground">Request a Tax Refund</h2>
-          <form onSubmit={apply} className="space-y-3">
-            <div>
-              <Label>Refund Amount ({profile.primary_currency})</Label>
-              <Input type="number" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} min="0" step="0.01" required />
+          <div className="mb-4 flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <FileText className="h-5 w-5" />
             </div>
             <div>
-              <Label>Reason</Label>
-              <Textarea placeholder="Describe the basis for your refund..." value={reason} onChange={(e) => setReason(e.target.value)} rows={4} required />
+              <h2 className="font-semibold text-foreground">File a Tax Refund Request</h2>
+              <p className="text-xs text-muted-foreground">All information is encrypted and reviewed by our tax team.</p>
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Submitting..." : "Submit Refund Request"}
+          </div>
+
+          <form onSubmit={apply} className="space-y-4">
+            {/* Section: Taxpayer info */}
+            <div className="space-y-3">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">1. Taxpayer Information</p>
+              <div>
+                <Label>Full Legal Name</Label>
+                <Input value={profile.full_name} readOnly className="bg-muted/40" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Tax Year</Label>
+                  <Select value={taxYear} onValueChange={setTaxYear}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TAX_YEARS.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Filing Status</Label>
+                  <Select value={filingStatus} onValueChange={setFilingStatus}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {FILING_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Tax ID / SSN <span className="text-muted-foreground text-xs">(9 digits)</span></Label>
+                <Input
+                  value={tin}
+                  onChange={(e) => setTin(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                  placeholder="123-45-6789"
+                  inputMode="numeric"
+                  required
+                />
+                <p className="mt-1 text-[10px] text-muted-foreground">Stored masked; only last 4 digits are visible to admins.</p>
+              </div>
+            </div>
+
+            {/* Section: Income */}
+            <div className="space-y-3 border-t border-border pt-4">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">2. Income & Tax Paid</p>
+              <div>
+                <Label>Employer / Income Source</Label>
+                <Input value={employer} onChange={(e) => setEmployer(e.target.value)} placeholder="e.g. Acme Corp" required />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Annual Income ({profile.primary_currency})</Label>
+                  <Input type="number" value={annualIncome} onChange={(e) => setAnnualIncome(e.target.value)} placeholder="0.00" min="0" step="0.01" required />
+                </div>
+                <div>
+                  <Label>Total Tax Paid</Label>
+                  <Input type="number" value={taxPaid} onChange={(e) => setTaxPaid(e.target.value)} placeholder="0.00" min="0" step="0.01" required />
+                </div>
+              </div>
+            </div>
+
+            {/* Section: Refund details */}
+            <div className="space-y-3 border-t border-border pt-4">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">3. Refund Details</p>
+              <div>
+                <Label>Refund Amount Claimed ({profile.primary_currency})</Label>
+                <Input type="number" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} min="0" step="0.01" required />
+              </div>
+              <div>
+                <Label>Reason for Refund</Label>
+                <Select value={reasonType} onValueChange={setReasonType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {REFUND_REASONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Additional Details</Label>
+                <Textarea placeholder="Provide a detailed explanation of why you're entitled to this refund..." value={reason} onChange={(e) => setReason(e.target.value)} rows={4} required />
+              </div>
+            </div>
+
+            {/* Certification */}
+            <label className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 text-xs text-foreground">
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-primary" />
+              <span>
+                I declare under penalty of perjury that the information provided is true, correct, and complete to the best of my knowledge.
+              </span>
+            </label>
+
+            <Button type="submit" className="w-full gap-2" disabled={submitting}>
+              <ShieldCheck className="h-4 w-4" />
+              {submitting ? "Submitting..." : "File Refund Request"}
             </Button>
           </form>
         </div>
