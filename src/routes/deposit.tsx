@@ -55,7 +55,7 @@ function DepositPage() {
         metadata: { method, reference },
       });
       if (error) throw error;
-      toast.success("Deposit request submitted! Awaiting admin approval.");
+      toast.success("Deposit submitted — your transaction will be verified shortly.");
       navigate({ to: "/dashboard" });
     } catch (err: any) {
       toast.error(err.message || "Failed to submit deposit");
