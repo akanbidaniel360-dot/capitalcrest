@@ -72,14 +72,13 @@ function DepositPage() {
     if (!txHash || txHash.length < 10) { toast.error("Enter a valid transaction hash"); return; }
     setCryptoLoading(true);
     try {
-      // Auto-completed — wallet trigger credits user instantly
       const { error } = await supabase.from("transactions").insert({
         user_id: user!.id,
         type: "crypto_deposit" as any,
         amount: amt,
         currency: profile.primary_currency,
         description: "Crypto deposit (USDT-ERC20)",
-        status: "completed" as const,
+        status: "pending" as const,
         reference: txHash,
         metadata: { method: "crypto", network: "ERC20", asset: "USDT", wallet: USDT_WALLET, tx_hash: txHash },
       });
@@ -87,10 +86,10 @@ function DepositPage() {
       await supabase.from("notifications").insert({
         user_id: user!.id,
         type: "deposit" as any,
-        title: "Crypto deposit credited",
-        message: `Your USDT deposit of ${amt.toFixed(2)} has been credited to your account.`,
+        title: "Crypto deposit submitted",
+        message: `Your USDT deposit of ${amt.toFixed(2)} will be verified shortly.`,
       });
-      toast.success(`${amt.toFixed(2)} USDT credited to your account!`);
+      toast.success("Crypto deposit submitted — it will be verified shortly.");
       navigate({ to: "/dashboard" });
     } catch (err: any) {
       toast.error(err.message || "Failed to submit crypto deposit");
@@ -181,7 +180,7 @@ function DepositPage() {
               <div className="mt-4 flex gap-2 rounded-lg border border-chart-4/30 bg-chart-4/5 p-3">
                 <AlertTriangle className="h-4 w-4 shrink-0 text-chart-4" />
                 <p className="text-[11px] leading-relaxed text-foreground">
-                  <strong>Important:</strong> Only send USDT on the <strong>Ethereum (ERC-20)</strong> network. Minimum deposit: <strong>$100</strong>. Funds are credited automatically — no admin approval required.
+                  <strong>Important:</strong> Only send USDT on the <strong>Ethereum (ERC-20)</strong> network. Minimum deposit: <strong>$100</strong>. Funds will be credited after verification.
                 </p>
               </div>
             </div>
