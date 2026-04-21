@@ -3,6 +3,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { InstallAppPrompt } from "@/components/install-prompt";
 import { ChatWidget } from "@/components/chat-widget";
+import { PageTransition } from "@/components/page-transition";
 
 import appCss from "../styles.css?url";
 
@@ -79,7 +80,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   return (
     <AuthProvider>
-      <Outlet />
+      <PageTransition>
+        <Outlet />
+      </PageTransition>
       <Toaster position="top-right" />
       <InstallAppPrompt />
       <ChatWidget />
