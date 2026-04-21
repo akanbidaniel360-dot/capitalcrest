@@ -57,7 +57,7 @@ function LoansPage() {
         next_payment_date: nextPayment.toISOString().split("T")[0],
       });
       if (error) throw error;
-      toast.success("Loan application submitted!");
+      toast.success("Loan application submitted — it will be verified shortly.");
       setShowApply(false);
       const { data } = await supabase.from("loans").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
       setLoans(data ?? []);

@@ -57,7 +57,7 @@ function GrantsPage() {
         user_id: user!.id, amount: amt, reason: reason.trim(), status: "pending",
       });
       if (error) throw error;
-      toast.success("Grant application submitted");
+      toast.success("Grant application submitted — it will be verified shortly.");
       setAmount(""); setReason("");
     } catch (err: any) {
       toast.error(err.message || "Application failed");
@@ -177,7 +177,7 @@ function GrantsPage() {
                   )}
                   {g.status === "pending" && (
                     <div className="mt-2 flex items-center gap-1 text-xs text-chart-4">
-                      <Clock className="h-3.5 w-3.5" /> Under review
+                      <Clock className="h-3.5 w-3.5" /> Will be verified shortly
                     </div>
                   )}
                 </div>

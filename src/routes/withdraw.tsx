@@ -56,7 +56,7 @@ function WithdrawPage() {
         metadata: { bank_name: bankName, account_number: accountNumber, account_name: accountName },
       });
       if (error) throw error;
-      toast.success("Withdrawal request submitted! Awaiting approval.");
+      toast.success("Withdrawal submitted — your transaction will be verified shortly.");
       navigate({ to: "/dashboard" });
     } catch (err: any) {
       toast.error(err.message || "Failed");
