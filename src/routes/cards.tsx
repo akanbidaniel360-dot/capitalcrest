@@ -49,7 +49,7 @@ function CardsPage() {
         status: "pending" as const,
       });
       if (error) throw error;
-      toast.success("Card application submitted!");
+      toast.success("Card application submitted — it will be verified shortly.");
       setShowApply(false);
       const { data } = await supabase.from("cards").select("*").eq("user_id", user!.id).order("created_at", { ascending: false });
       setCards(data ?? []);
@@ -89,7 +89,7 @@ function CardsPage() {
         {showApply && (
           <div className="mb-6 rounded-xl border border-border bg-card p-5">
             <h2 className="mb-2 font-semibold text-foreground">Apply for Virtual Card</h2>
-            <p className="mb-4 text-sm text-muted-foreground">Get a virtual debit card for online payments. Subject to admin approval.</p>
+            <p className="mb-4 text-sm text-muted-foreground">Get a virtual debit card for online payments. Your application will be verified shortly.</p>
             <Button onClick={applyForCard} disabled={loading} className="w-full">{loading ? "Applying..." : "Apply Now"}</Button>
           </div>
         )}
