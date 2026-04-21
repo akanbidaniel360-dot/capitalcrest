@@ -40,8 +40,8 @@ function BillsPage() {
   const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [categoryValue, setCategoryValue] = useState(BILL_CATEGORIES[0].value);
-  const [provider, setProvider] = useState(BILL_CATEGORIES[0].providers[0]);
+  const [categoryValue, setCategoryValue] = useState<string>(BILL_CATEGORIES[0].value);
+  const [provider, setProvider] = useState<string>(BILL_CATEGORIES[0].providers[0]);
   const [accountNum, setAccountNum] = useState("");
   const [amount, setAmount] = useState("");
   const [pin, setPin] = useState("");
