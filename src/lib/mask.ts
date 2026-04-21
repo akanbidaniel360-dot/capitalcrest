@@ -1,14 +1,13 @@
 /**
- * Mask an account number for display, showing only the last 4 digits.
- * Always renders as `**** **** **** 1234`.
+ * Format an account number for display in groups of 4 digits.
+ * Returns the full account number, e.g. `1234 5678 9012 3456`.
  */
 export function maskAccountNumber(acct: string | null | undefined): string {
-  if (!acct) return "**** **** **** ****";
-  const last4 = acct.slice(-4).padStart(4, "*");
-  return `**** **** **** ${last4}`;
+  if (!acct) return "•••• •••• •••• ••••";
+  return acct.replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
 }
 
-/** Show last 4 only — compact form, e.g. `••1234` */
+/** Compact form showing last 4 only, e.g. `••1234` */
 export function maskShort(acct: string | null | undefined): string {
   if (!acct) return "••••";
   return `••${acct.slice(-4)}`;
