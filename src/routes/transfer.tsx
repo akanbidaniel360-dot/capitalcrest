@@ -10,6 +10,7 @@ import { ArrowLeft, Send, Globe, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
 import { maskAccountNumber } from "@/lib/mask";
+import { TransactionReceipt, type ReceiptLine } from "@/components/transaction-receipt";
 
 export const Route = createFileRoute("/transfer")({
   component: TransferPage,
@@ -21,6 +22,13 @@ function TransferPage() {
   const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
   const [wallet, setWallet] = useState<any>(null);
+  const [receipt, setReceipt] = useState<null | {
+    title: string;
+    amount: number;
+    reference: string;
+    lines: ReceiptLine[];
+    note?: string;
+  }>(null);
 
   // local
   const [lAcct, setLAcct] = useState("");
@@ -68,7 +76,7 @@ function TransferPage() {
 
     setLLoading(true);
     try {
-      const { error } = await supabase.from("transactions").insert({
+      const { data, error } = await supabase.from("transactions").insert({
         user_id: user!.id,
         type: "transfer_out" as const,
         amount: amt,
@@ -80,10 +88,21 @@ function TransferPage() {
           recipient_account: lAcct,
           recipient_bank: lBank,
         },
-      });
+      }).select().single();
       if (error) throw error;
-      toast.success(`Sent ${formatCurrency(amt, profile.primary_currency)} to ${lBank}`);
-      navigate({ to: "/dashboard" });
+      setReceipt({
+        title: "Local Transfer Sent",
+        amount: amt,
+        reference: data?.reference || data?.id || "—",
+        lines: [
+          { label: "From", value: `${profile.full_name} · ${maskAccountNumber(profile.account_number)}` },
+          { label: "To Bank", value: lBank },
+          { label: "Account", value: lAcct },
+          { label: "Description", value: lDesc || `Transfer to ${lBank}` },
+          { label: "Status", value: "Completed" },
+        ],
+        note: "Funds have been sent to the recipient bank.",
+      });
     } catch (err: any) {
       toast.error(err.message || "Transfer failed");
     } finally {
@@ -103,7 +122,7 @@ function TransferPage() {
 
     setILoading(true);
     try {
-      const { error } = await supabase.from("transactions").insert({
+      const { data, error } = await supabase.from("transactions").insert({
         user_id: user!.id,
         type: "transfer_out" as const,
         amount: total,
@@ -119,10 +138,24 @@ function TransferPage() {
           fee,
           fee_rate: INTL_FEE_RATE,
         },
-      });
+      }).select().single();
       if (error) throw error;
-      toast.success(`Sent ${formatCurrency(amt, profile.primary_currency)} internationally (+${formatCurrency(fee, profile.primary_currency)} fee)`);
-      navigate({ to: "/dashboard" });
+      setReceipt({
+        title: "International Transfer Sent",
+        amount: total,
+        reference: data?.reference || data?.id || "—",
+        lines: [
+          { label: "From", value: `${profile.full_name} · ${maskAccountNumber(profile.account_number)}` },
+          { label: "To Bank", value: iBank },
+          { label: "Account / IBAN", value: iAcct },
+          { label: "SWIFT / BIC", value: iSwift || "—" },
+          { label: "Country", value: iCountry },
+          { label: "Amount", value: formatCurrency(amt, profile.primary_currency) },
+          { label: "Fee (1%)", value: formatCurrency(fee, profile.primary_currency) },
+          { label: "Status", value: "Completed" },
+        ],
+        note: "International transfers may take 1–3 business days to settle.",
+      });
     } catch (err: any) {
       toast.error(err.message || "Transfer failed");
     } finally {
@@ -230,6 +263,19 @@ function TransferPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {receipt && (
+        <TransactionReceipt
+          open={!!receipt}
+          onClose={() => { setReceipt(null); navigate({ to: "/dashboard" }); }}
+          title={receipt.title}
+          amount={receipt.amount}
+          currency={profile.primary_currency}
+          reference={receipt.reference}
+          lines={receipt.lines}
+          note={receipt.note}
+        />
+      )}
     </div>
   );
 }

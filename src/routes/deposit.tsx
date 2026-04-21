@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ArrowDownLeft, Copy, AlertTriangle, Bitcoin, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+import { TransactionReceipt, type ReceiptLine } from "@/components/transaction-receipt";
+import { maskAccountNumber } from "@/lib/mask";
 
 export const Route = createFileRoute("/deposit")({
   component: DepositPage,
@@ -32,6 +34,13 @@ function DepositPage() {
   const [cryptoAmount, setCryptoAmount] = useState("");
   const [txHash, setTxHash] = useState("");
   const [cryptoLoading, setCryptoLoading] = useState(false);
+  const [receipt, setReceipt] = useState<null | {
+    title: string;
+    amount: number;
+    reference: string;
+    lines: ReceiptLine[];
+    note?: string;
+  }>(null);
 
   useEffect(() => {
     if (!isLoading && !user) navigate({ to: "/login" });
@@ -45,7 +54,7 @@ function DepositPage() {
     if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return; }
     setLoading(true);
     try {
-      const { error } = await supabase.from("transactions").insert({
+      const { data, error } = await supabase.from("transactions").insert({
         user_id: user!.id,
         type: "deposit" as const,
         amount: amt,
@@ -53,10 +62,20 @@ function DepositPage() {
         description: `Deposit via ${method.replace("_", " ")}`,
         status: "pending" as const,
         metadata: { method, reference },
-      });
+      }).select().single();
       if (error) throw error;
-      toast.success("Deposit submitted — your transaction will be verified shortly.");
-      navigate({ to: "/dashboard" });
+      setReceipt({
+        title: "Deposit Submitted",
+        amount: amt,
+        reference: data?.reference || data?.id || "—",
+        lines: [
+          { label: "Account", value: `${profile.full_name} · ${maskAccountNumber(profile.account_number)}` },
+          { label: "Method", value: method === "bank_transfer" ? "Bank Transfer" : "Debit/Credit Card" },
+          { label: "Payment Ref", value: reference || "—" },
+          { label: "Status", value: "Pending verification" },
+        ],
+        note: "Your transaction will be verified shortly.",
+      });
     } catch (err: any) {
       toast.error(err.message || "Failed to submit deposit");
     } finally {
@@ -72,7 +91,7 @@ function DepositPage() {
     if (!txHash || txHash.length < 10) { toast.error("Enter a valid transaction hash"); return; }
     setCryptoLoading(true);
     try {
-      const { error } = await supabase.from("transactions").insert({
+      const { data, error } = await supabase.from("transactions").insert({
         user_id: user!.id,
         type: "crypto_deposit" as any,
         amount: amt,
@@ -81,7 +100,7 @@ function DepositPage() {
         status: "pending" as const,
         reference: txHash,
         metadata: { method: "crypto", network: "ERC20", asset: "USDT", wallet: USDT_WALLET, tx_hash: txHash },
-      });
+      }).select().single();
       if (error) throw error;
       await supabase.from("notifications").insert({
         user_id: user!.id,
@@ -89,8 +108,19 @@ function DepositPage() {
         title: "Crypto deposit submitted",
         message: `Your USDT deposit of ${amt.toFixed(2)} will be verified shortly.`,
       });
-      toast.success("Crypto deposit submitted — it will be verified shortly.");
-      navigate({ to: "/dashboard" });
+      setReceipt({
+        title: "Crypto Deposit Submitted",
+        amount: amt,
+        reference: data?.reference || txHash,
+        lines: [
+          { label: "Asset", value: "USDT (ERC-20)" },
+          { label: "Network", value: "Ethereum" },
+          { label: "Tx Hash", value: txHash },
+          { label: "Account", value: `${profile.full_name} · ${maskAccountNumber(profile.account_number)}` },
+          { label: "Status", value: "Pending verification" },
+        ],
+        note: "Funds will be credited after on-chain confirmation and verification.",
+      });
     } catch (err: any) {
       toast.error(err.message || "Failed to submit crypto deposit");
     } finally {
@@ -203,6 +233,20 @@ function DepositPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {receipt && (
+        <TransactionReceipt
+          open={!!receipt}
+          onClose={() => { setReceipt(null); navigate({ to: "/dashboard" }); }}
+          status="pending"
+          title={receipt.title}
+          amount={receipt.amount}
+          currency={profile.primary_currency}
+          reference={receipt.reference}
+          lines={receipt.lines}
+          note={receipt.note}
+        />
+      )}
     </div>
   );
 }
