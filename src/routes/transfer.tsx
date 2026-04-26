@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import {
   ArrowLeft, Send, Globe, Building2, ShieldCheck, UserCheck,
-  Loader2, Info, BookmarkPlus, Eye, EyeOff,
+  Loader2, Info, BookmarkPlus, Eye, EyeOff, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency, convertWithRates } from "@/lib/currency";
@@ -255,6 +255,27 @@ function TransferPage() {
 
   const dailyLimit = useMemo(() => 50000, []);
 
+  // Conversion disclaimer state — only show when at least one wallet
+  // is in a currency other than the user's primary currency.
+  const hasConversion = wallets.some((w) => w.currency !== profile.primary_currency);
+  const ratesLastUpdated = useMemo(() => {
+    if (!rates.length) return null;
+    const ts = rates
+      .map((r) => (r.updated_at ? new Date(r.updated_at).getTime() : 0))
+      .filter((n) => n > 0);
+    return ts.length ? new Date(Math.max(...ts)) : null;
+  }, [rates]);
+  const formatRelative = (d: Date) => {
+    const diff = Math.max(0, Date.now() - d.getTime());
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "just now";
+    if (m < 60) return `${m} min ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    const days = Math.floor(h / 24);
+    return `${days}d ago`;
+  };
+
   return (
     <div className="min-h-screen bg-background pb-10">
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -285,6 +306,30 @@ function TransferPage() {
             <p className="text-[10px] opacity-70">Daily limit: {formatCurrency(dailyLimit, profile.primary_currency)}</p>
           </div>
         </div>
+
+        {/* Exchange-rate disclaimer */}
+        {hasConversion && (
+          <div className="mb-4 flex items-start gap-2 rounded-xl border border-border bg-muted/40 p-3 text-[11px] text-muted-foreground">
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+            <div className="space-y-0.5">
+              <p className="text-foreground">
+                Available balance is an estimate, converted to {profile.primary_currency} from your other wallets at the current indicative rate.
+              </p>
+              <p className="flex items-center gap-1">
+                <RefreshCw className="h-3 w-3" />
+                Rates last updated{" "}
+                {ratesLastUpdated ? (
+                  <span className="text-foreground">
+                    {formatRelative(ratesLastUpdated)} · {ratesLastUpdated.toLocaleString()}
+                  </span>
+                ) : (
+                  <span>unavailable</span>
+                )}
+                . Final settlement may vary slightly.
+              </p>
+            </div>
+          </div>
+        )}
 
         <Tabs defaultValue="local">
           <TabsList className="grid w-full grid-cols-2">
