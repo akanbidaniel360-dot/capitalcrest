@@ -6,10 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Gift, CheckCircle2, XCircle, Clock, KeyRound } from "lucide-react";
+import { ArrowLeft, Gift, CheckCircle2, XCircle, Clock, KeyRound, ShieldCheck, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const GRANT_CATEGORIES = [
+  { id: "education", label: "Education & Tuition", max: 15000 },
+  { id: "small_business", label: "Small Business Support", max: 25000 },
+  { id: "housing", label: "Housing Assistance", max: 12000 },
+  { id: "medical", label: "Medical Hardship", max: 20000 },
+  { id: "agriculture", label: "Agriculture & Farming", max: 18000 },
+  { id: "disability", label: "Disability Support", max: 10000 },
+  { id: "disaster", label: "Disaster Relief", max: 30000 },
+  { id: "research", label: "Research & Innovation", max: 50000 },
+] as const;
+
+const EMPLOYMENT = ["Employed", "Self-employed", "Unemployed", "Student", "Retired"];
+const HOUSEHOLDS = ["1", "2", "3", "4", "5", "6+"];
 
 export const Route = createFileRoute("/grants")({
   component: GrantsPage,
@@ -19,11 +35,21 @@ function GrantsPage() {
   const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
   const [grants, setGrants] = useState<any[]>([]);
-  const [amount, setAmount] = useState("");
-  const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [claimGrant, setClaimGrant] = useState<any>(null);
   const [claimCode, setClaimCode] = useState("");
+
+  // Application form state
+  const [category, setCategory] = useState<string>("");
+  const [amount, setAmount] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [employment, setEmployment] = useState("");
+  const [annualIncome, setAnnualIncome] = useState("");
+  const [household, setHousehold] = useState("");
+  const [govId, setGovId] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  const [certify, setCertify] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) navigate({ to: "/login" });
@@ -46,19 +72,42 @@ function GrantsPage() {
 
   if (!profile) return null;
 
+  const selectedCat = GRANT_CATEGORIES.find((c) => c.id === category);
+  const amt = parseFloat(amount) || 0;
+
+  const resetForm = () => {
+    setCategory(""); setAmount(""); setPurpose(""); setEmployment("");
+    setAnnualIncome(""); setHousehold(""); setGovId(""); setAddress("");
+    setPhone(""); setCertify(false);
+  };
+
   const apply = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amt = parseFloat(amount);
+    if (!selectedCat) { toast.error("Select a grant category"); return; }
     if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return; }
-    if (!reason.trim() || reason.length < 10) { toast.error("Reason must be at least 10 characters"); return; }
+    if (amt > selectedCat.max) { toast.error(`Maximum for this category is ${formatCurrency(selectedCat.max, profile.primary_currency)}`); return; }
+    if (!purpose.trim() || purpose.length < 20) { toast.error("Purpose must be at least 20 characters"); return; }
+    if (!employment) { toast.error("Select your employment status"); return; }
+    if (!annualIncome || parseFloat(annualIncome) < 0) { toast.error("Enter your annual income"); return; }
+    if (!household) { toast.error("Select household size"); return; }
+    if (govId.replace(/\D/g, "").length < 6) { toast.error("Enter a valid government ID number"); return; }
+    if (!address.trim() || address.length < 8) { toast.error("Enter your full residential address"); return; }
+    if (phone.replace(/\D/g, "").length < 7) { toast.error("Enter a valid phone number"); return; }
+    if (!certify) { toast.error("You must certify the information is accurate"); return; }
+
     setSubmitting(true);
     try {
+      const reason =
+        `[${selectedCat.label}] ${purpose.trim()} ` +
+        `| Employment: ${employment} | Annual Income: ${annualIncome} ${profile.primary_currency} ` +
+        `| Household: ${household} | Gov ID: ****${govId.slice(-4)} ` +
+        `| Address: ${address} | Phone: ${phone}`;
       const { error } = await supabase.from("grants").insert({
-        user_id: user!.id, amount: amt, reason: reason.trim(), status: "pending",
+        user_id: user!.id, amount: amt, reason, status: "pending",
       });
       if (error) throw error;
-      toast.success("Grant application submitted — it will be verified shortly.");
-      setAmount(""); setReason("");
+      toast.success("Application submitted. We'll review your details shortly.");
+      resetForm();
     } catch (err: any) {
       toast.error(err.message || "Application failed");
     } finally {
@@ -121,19 +170,133 @@ function GrantsPage() {
       </header>
 
       <div className="mx-auto max-w-lg px-4 py-6 space-y-6">
-        <div className="rounded-xl border border-border bg-card p-5">
-          <h2 className="mb-3 font-semibold text-foreground">Apply for a Grant</h2>
-          <form onSubmit={apply} className="space-y-3">
-            <div>
-              <Label>Amount ({profile.primary_currency})</Label>
-              <Input type="number" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} min="0" step="0.01" required />
+        {/* Hero */}
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/70 p-5 text-primary-foreground shadow-lg">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-white/15 p-2 backdrop-blur">
+              <Gift className="h-5 w-5" />
             </div>
             <div>
-              <Label>Reason</Label>
-              <Textarea placeholder="Tell us why you need this grant..." value={reason} onChange={(e) => setReason(e.target.value)} rows={4} required />
+              <p className="text-xs uppercase tracking-wider opacity-80">Capital Crest Grants</p>
+              <h2 className="text-xl font-bold leading-tight">Funding for what matters</h2>
+              <p className="mt-1 text-xs opacity-80">Subject to eligibility review and verification of submitted documents.</p>
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Submitting..." : "Submit Application"}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            <h2 className="font-semibold text-foreground">Grant Application</h2>
+          </div>
+
+          <form onSubmit={apply} className="space-y-4">
+            {/* Category */}
+            <div>
+              <Label>Grant Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Select a category" /></SelectTrigger>
+                <SelectContent>
+                  {GRANT_CATEGORIES.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.label} <span className="text-muted-foreground">· up to {formatCurrency(c.max, profile.primary_currency)}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedCat && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Maximum allowed: <span className="font-semibold text-foreground">{formatCurrency(selectedCat.max, profile.primary_currency)}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Amount */}
+            <div>
+              <Label>Requested Amount ({profile.primary_currency})</Label>
+              <Input
+                type="number" inputMode="decimal" placeholder="0.00"
+                value={amount} onChange={(e) => setAmount(e.target.value)}
+                min="0" step="0.01" required
+                className="text-lg font-semibold"
+              />
+            </div>
+
+            {/* Purpose */}
+            <div>
+              <Label>Purpose & Justification</Label>
+              <Textarea
+                placeholder="Describe how the funds will be used and why you qualify (min. 20 characters)…"
+                value={purpose} onChange={(e) => setPurpose(e.target.value)}
+                rows={4} required
+              />
+              <p className="mt-1 text-[10px] text-muted-foreground">{purpose.length}/600</p>
+            </div>
+
+            <div className="border-t border-border/50 pt-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Personal Details</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Employment Status</Label>
+                  <Select value={employment} onValueChange={setEmployment}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {EMPLOYMENT.map((e) => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Household Size</Label>
+                  <Select value={household} onValueChange={setHousehold}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      {HOUSEHOLDS.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <Label>Annual Household Income ({profile.primary_currency})</Label>
+                <Input type="number" inputMode="decimal" placeholder="0.00"
+                  value={annualIncome} onChange={(e) => setAnnualIncome(e.target.value)}
+                  min="0" step="0.01" required />
+              </div>
+
+              <div className="mt-3">
+                <Label>Government-Issued ID Number</Label>
+                <Input placeholder="SSN / NIN / Passport No."
+                  value={govId} onChange={(e) => setGovId(e.target.value)}
+                  className="font-mono tracking-wider" required />
+                <p className="mt-1 text-[10px] text-muted-foreground">Used for identity verification only.</p>
+              </div>
+
+              <div className="mt-3">
+                <Label>Residential Address</Label>
+                <Textarea placeholder="Street, City, State / Province, Postal Code"
+                  value={address} onChange={(e) => setAddress(e.target.value)}
+                  rows={2} required />
+              </div>
+
+              <div className="mt-3">
+                <Label>Phone Number</Label>
+                <Input type="tel" placeholder="+1 555 000 0000"
+                  value={phone} onChange={(e) => setPhone(e.target.value)} required />
+              </div>
+            </div>
+
+            {/* Certification */}
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/50 bg-muted/30 p-3">
+              <Checkbox checked={certify} onCheckedChange={(v) => setCertify(!!v)} className="mt-0.5" />
+              <span className="text-xs text-muted-foreground">
+                I certify under penalty of perjury that the information provided is true and accurate, and I authorize Capital Crest to verify the details.
+              </span>
+            </label>
+
+            <Button type="submit" className="w-full gap-2" disabled={submitting}>
+              <ShieldCheck className="h-4 w-4" />
+              {submitting ? "Submitting…" : "Submit Application"}
             </Button>
           </form>
         </div>

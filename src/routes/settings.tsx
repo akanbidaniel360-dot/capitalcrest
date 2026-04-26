@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, User, Shield, LogOut, Upload, Key, Copy } from "lucide-react";
+import { ArrowLeft, User, Shield, LogOut, Upload, Key, Copy, Globe2 } from "lucide-react";
 import { toast } from "sonner";
 import { maskAccountNumber } from "@/lib/mask";
+import { CURRENCIES, getCurrencySymbol } from "@/lib/currency";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -19,6 +21,7 @@ function SettingsPage() {
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [settingPin, setSettingPin] = useState(false);
+  const [switchingCurrency, setSwitchingCurrency] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) navigate({ to: "/login" });
@@ -77,6 +80,33 @@ function SettingsPage() {
     navigate({ to: "/" });
   };
 
+  const handleCurrencyChange = async (newCurrency: string) => {
+    if (newCurrency === profile.primary_currency) return;
+    setSwitchingCurrency(true);
+    try {
+      // Ensure a wallet exists for the new currency
+      const { data: existing } = await supabase
+        .from("wallets").select("id")
+        .eq("user_id", user!.id).eq("currency", newCurrency).maybeSingle();
+      if (!existing) {
+        await supabase.from("wallets").insert({
+          user_id: user!.id, currency: newCurrency,
+          available_balance: 0, pending_balance: 0,
+        });
+      }
+      const { error } = await supabase.from("profiles")
+        .update({ primary_currency: newCurrency })
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      await refreshProfile();
+      toast.success(`Primary currency switched to ${newCurrency}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to switch currency");
+    } finally {
+      setSwitchingCurrency(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
@@ -103,6 +133,29 @@ function SettingsPage() {
             <div className="flex justify-between"><span className="text-muted-foreground">Currency</span><span className="text-foreground">{profile.primary_currency}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Referral Code</span><span className="font-mono text-foreground">{profile.referral_code}</span></div>
           </div>
+        </div>
+
+        {/* Primary Currency */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <h2 className="mb-1 flex items-center gap-2 font-semibold text-foreground">
+            <Globe2 className="h-5 w-5 text-primary" /> Primary Currency
+          </h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Switch the currency your dashboard displays. A wallet for the new currency is created automatically. Use <Link to="/convert" className="font-medium text-primary hover:underline">Convert</Link> to move funds between currencies at admin-set rates.
+          </p>
+          <Select value={profile.primary_currency} onValueChange={handleCurrencyChange} disabled={switchingCurrency}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CURRENCIES.map((c) => (
+                <SelectItem key={c.code} value={c.code}>
+                  <span className="font-mono">{getCurrencySymbol(c.code)}</span>
+                  <span className="ml-2">{c.code} — {c.name}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* KYC Verification */}

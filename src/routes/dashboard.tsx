@@ -165,32 +165,56 @@ function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-4 overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-5 text-primary-foreground shadow-lg"
+          className="relative mt-4 overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary to-primary/70 p-5 text-primary-foreground shadow-2xl shadow-primary/30"
         >
-          <div className="flex items-center justify-between">
-            <p className="text-sm opacity-80">Available Balance</p>
-            <button onClick={() => setShowBalance(!showBalance)} className="opacity-70 hover:opacity-100">
-              {showBalance ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-            </button>
-          </div>
-          <p className="mt-1 text-3xl font-bold">
-            {showBalance ? formatCurrency(balance, currency) : `${getCurrencySymbol(currency)}••••••`}
-          </p>
-          {pending > 0 && (
-            <p className="mt-1 text-xs opacity-70">
-              Pending: {formatCurrency(pending, currency)}
-            </p>
-          )}
-          <div className="mt-4 flex items-center justify-between rounded-lg bg-white/10 px-3 py-2 text-sm backdrop-blur-sm">
-            <div>
-              <p className="text-xs opacity-70">Account Number</p>
-              <p className="font-mono font-semibold">{maskAccountNumber(profile.account_number)}</p>
+          {/* decorative orbs */}
+          <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-16 -left-10 h-44 w-44 rounded-full bg-white/5 blur-2xl" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_55%)]" />
+
+          <div className="relative">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-3.5 w-3.5 opacity-80" />
+                <p className="text-[11px] uppercase tracking-[0.18em] opacity-80">Available Balance</p>
+              </div>
+              <button
+                onClick={() => setShowBalance(!showBalance)}
+                className="rounded-full bg-white/10 p-1.5 transition hover:bg-white/20"
+                aria-label={showBalance ? "Hide balance" : "Show balance"}
+              >
+                {showBalance ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              </button>
             </div>
-            <button onClick={copyAccount} className="opacity-70 hover:opacity-100">
-              <Copy className="h-4 w-4" />
-            </button>
+
+            <p className="mt-2 text-4xl font-bold leading-tight tracking-tight tabular-nums">
+              {showBalance ? formatCurrency(balance, currency) : `${getCurrencySymbol(currency)} ••••••`}
+            </p>
+            {pending > 0 && (
+              <p className="mt-1 text-xs opacity-75">
+                <span className="opacity-60">Pending</span> · {formatCurrency(pending, currency)}
+              </p>
+            )}
+
+            <div className="mt-5 flex items-center justify-between rounded-2xl bg-white/12 px-3 py-2.5 backdrop-blur-md ring-1 ring-inset ring-white/15">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-wider opacity-70">Account Number</p>
+                <p className="truncate font-mono text-sm font-semibold">{maskAccountNumber(profile.account_number)}</p>
+              </div>
+              <button
+                onClick={copyAccount}
+                className="rounded-full bg-white/10 p-2 transition hover:bg-white/20"
+                aria-label="Copy account number"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between text-[10px] uppercase tracking-wider">
+              <p className="opacity-60">Capital Crest</p>
+              <p className="rounded-full bg-white/10 px-2 py-0.5 font-semibold">{currency}</p>
+            </div>
           </div>
-          <p className="mt-2 text-xs opacity-50">Capital Crest • {currency}</p>
         </motion.div>
 
         {/* KYC Banner */}
@@ -209,18 +233,22 @@ function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="mt-6">
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">Quick Actions</h2>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-muted-foreground">Quick Actions</h2>
+            <Link to="/transactions" className="text-[11px] font-medium text-primary hover:underline">More</Link>
+          </div>
+          <div className="grid grid-cols-4 gap-2.5">
             {quickActions.map((a) => (
               <Link key={a.label} to={a.to as any}>
                 <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-3 transition-colors hover:border-primary/30"
+                  whileTap={{ scale: 0.93 }}
+                  whileHover={{ y: -2 }}
+                  className="flex flex-col items-center gap-2 rounded-2xl border border-border/60 bg-card p-3 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
                 >
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-full ${a.color}`}>
-                    <a.icon className="h-4 w-4" />
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${a.color}`}>
+                    <a.icon className="h-[18px] w-[18px]" />
                   </div>
-                  <span className="text-[10px] font-medium text-foreground text-center">{a.label}</span>
+                  <span className="text-[10px] font-semibold text-foreground text-center leading-tight">{a.label}</span>
                 </motion.div>
               </Link>
             ))}
