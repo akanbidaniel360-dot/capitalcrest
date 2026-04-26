@@ -7,6 +7,7 @@ export const CURRENCIES = [
   { code: "ZAR", symbol: "R", name: "South African Rand" },
   { code: "GHS", symbol: "₵", name: "Ghanaian Cedi" },
   { code: "KES", symbol: "KSh", name: "Kenyan Shilling" },
+  { code: "INR", symbol: "₹", name: "Indian Rupee" },
 ] as const;
 
 export const COUNTRIES = [
