@@ -100,6 +100,16 @@ function TransferPage() {
     return () => clearTimeout(t);
   }, [lAcct, lBank]);
 
+  const ratesLastUpdated = useMemo(() => {
+    if (!rates.length) return null;
+    const ts = rates
+      .map((r) => (r.updated_at ? new Date(r.updated_at).getTime() : 0))
+      .filter((n) => n > 0);
+    return ts.length ? new Date(Math.max(...ts)) : null;
+  }, [rates]);
+
+  const dailyLimit = useMemo(() => 50000, []);
+
   if (!profile) return null;
 
   const verifyPin = (pin: string) => {
@@ -253,18 +263,8 @@ function TransferPage() {
   const intlAmt = parseFloat(iAmount) || 0;
   const intlFee = intlAmt * INTL_FEE_RATE;
 
-  const dailyLimit = useMemo(() => 50000, []);
-
-  // Conversion disclaimer state — only show when at least one wallet
-  // is in a currency other than the user's primary currency.
+  // Show disclaimer only when at least one wallet is in a non-primary currency.
   const hasConversion = wallets.some((w) => w.currency !== profile.primary_currency);
-  const ratesLastUpdated = useMemo(() => {
-    if (!rates.length) return null;
-    const ts = rates
-      .map((r) => (r.updated_at ? new Date(r.updated_at).getTime() : 0))
-      .filter((n) => n > 0);
-    return ts.length ? new Date(Math.max(...ts)) : null;
-  }, [rates]);
   const formatRelative = (d: Date) => {
     const diff = Math.max(0, Date.now() - d.getTime());
     const m = Math.floor(diff / 60000);
