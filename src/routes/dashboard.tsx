@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCurrency, getCurrencySymbol } from "@/lib/currency";
+import { formatCurrency, getCurrencySymbol, convertWithRates } from "@/lib/currency";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,8 @@ export const Route = createFileRoute("/dashboard")({
 function DashboardPage() {
   const { user, profile, isAdmin, signOut, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [wallet, setWallet] = useState<any>(null);
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [rates, setRates] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<number>(0);
   const [showBalance, setShowBalance] = useState(true);
@@ -35,13 +36,12 @@ function DashboardPage() {
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      const { data: w } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("currency", profile?.primary_currency ?? "USD")
-        .maybeSingle();
-      setWallet(w);
+      const [{ data: w }, { data: r }] = await Promise.all([
+        supabase.from("wallets").select("*").eq("user_id", user.id),
+        supabase.from("exchange_rates").select("from_currency,to_currency,rate"),
+      ]);
+      setWallets(w ?? []);
+      setRates(r ?? []);
 
       const { data: t } = await supabase
         .from("transactions")
@@ -75,6 +75,10 @@ function DashboardPage() {
         { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         () => fetchData()
       )
+      .on("postgres_changes",
+        { event: "*", schema: "public", table: "exchange_rates" },
+        () => fetchData()
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, profile]);
@@ -88,8 +92,15 @@ function DashboardPage() {
   }
 
   const currency = profile.primary_currency;
-  const balance = wallet?.available_balance ?? 0;
-  const pending = wallet?.pending_balance ?? 0;
+  // Aggregate every wallet, converted into the user's primary currency.
+  const balance = wallets.reduce(
+    (sum, w) => sum + convertWithRates(Number(w.available_balance) || 0, w.currency, currency, rates),
+    0,
+  );
+  const pending = wallets.reduce(
+    (sum, w) => sum + convertWithRates(Number(w.pending_balance) || 0, w.currency, currency, rates),
+    0,
+  );
 
   const quickActions = [
     { icon: ArrowDownLeft, label: "Deposit", to: "/deposit", color: "bg-emerald/10 text-emerald" },
