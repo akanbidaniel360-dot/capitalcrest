@@ -15,7 +15,7 @@ import {
   Loader2, Info, BookmarkPlus, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrency, convertWithRates } from "@/lib/currency";
 import { maskAccountNumber } from "@/lib/mask";
 import { TransactionReceipt, type ReceiptLine } from "@/components/transaction-receipt";
 import { LOCAL_BANKS, COUNTRIES_INTL, TRANSFER_PURPOSES } from "@/lib/banking-data";
@@ -43,7 +43,8 @@ function deriveRecipientName(acct: string) {
 function TransferPage() {
   const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [wallet, setWallet] = useState<any>(null);
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [rates, setRates] = useState<any[]>([]);
   const [showBalance, setShowBalance] = useState(true);
   const [receipt, setReceipt] = useState<null | {
     title: string; amount: number; reference: string; lines: ReceiptLine[]; note?: string;
@@ -81,8 +82,9 @@ function TransferPage() {
   useEffect(() => {
     if (!user || !profile) return;
     supabase.from("wallets").select("*").eq("user_id", user.id)
-      .eq("currency", profile.primary_currency).maybeSingle()
-      .then(({ data }) => setWallet(data));
+      .then(({ data }) => setWallets(data ?? []));
+    supabase.from("exchange_rates").select("*")
+      .then(({ data }) => setRates(data ?? []));
   }, [user, profile]);
 
   // auto verify local recipient
@@ -115,7 +117,7 @@ function TransferPage() {
     const amt = parseFloat(lAmount);
     if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return; }
     const total = amt + LOCAL_FEE_FLAT;
-    if (!wallet || total > Number(wallet.available_balance)) {
+    if (total > balance) {
       toast.error(`Insufficient balance (need ${formatCurrency(total, profile.primary_currency)} incl. fee)`);
       return;
     }
@@ -185,7 +187,7 @@ function TransferPage() {
     if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return; }
     const fee = amt * INTL_FEE_RATE;
     const total = amt + fee;
-    if (!wallet || total > Number(wallet.available_balance)) {
+    if (total > balance) {
       toast.error(`Insufficient balance (need ${formatCurrency(total, profile.primary_currency)} incl. fee)`);
       return;
     }
@@ -241,7 +243,12 @@ function TransferPage() {
     }
   };
 
-  const balance = Number(wallet?.available_balance ?? 0);
+  // Aggregate every wallet, converted into the user's primary currency,
+  // so the displayed available balance matches the Dashboard total.
+  const balance = wallets.reduce(
+    (sum, w) => sum + convertWithRates(Number(w.available_balance) || 0, w.currency, profile.primary_currency, rates),
+    0,
+  );
   const lAmt = parseFloat(lAmount) || 0;
   const intlAmt = parseFloat(iAmount) || 0;
   const intlFee = intlAmt * INTL_FEE_RATE;
